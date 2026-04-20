@@ -926,12 +926,7 @@ select:focus {
 }
 
 .footer::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 4px;
-  background: var(--gradient-2);
-  border-radius: 2px 2px 0 0;
+  content: none;
 }
 
 .footer-content {
@@ -986,7 +981,6 @@ select:focus {
 .footer-bottom {
   text-align: center;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
 }
