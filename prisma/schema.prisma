@@ -1,0 +1,432 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Multi-Tenant Core
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  domain    String?  @unique // Custom domain or subdomain
+  logoUrl   String?
+  signatureUrl String?
+  address   String?
+  contactNumber String?
+  email     String?
+  receiptPrefix String @default("RCPT")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+  roles Role[]
+
+  // Phase 2 & 3 Relations
+  academicSessions AcademicSession[]
+  classes          Class[]
+  sections         Section[]
+  studentProfiles  StudentProfile[]
+  enrollments      StudentEnrollment[]
+  feeHeads         FeeHead[]
+  feeStructures    FeeStructure[]
+  studentFees      StudentFee[]
+  feePayments      FeePayment[]
+
+  // Phase 4 & 5 Relations
+  subjects              Subject[]
+  classSubjects         ClassSubject[]
+  examTypes             ExamType[]
+  exams                 Exam[]
+  studentMarks          StudentMark[]
+  timetablePeriods      TimetablePeriod[]
+  formTemplates         FormTemplate[]
+  certificateTemplates  CertificateTemplate[]
+  notificationTemplates NotificationTemplate[]
+  transportRoutes       TransportRoute[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String?
+  isSuperAdmin Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenantId String? // Null for Super Admins
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  roleId String?
+  role   Role?   @relation(fields: [roleId], references: [id])
+
+  studentProfile StudentProfile?
+  taughtSubjects ClassSubject[]    @relation("TeacherSubjects")
+  timetables     TimetablePeriod[] @relation("TeacherTimetable")
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  name      String // e.g., "School Admin", "Teacher"
+  isSystem  Boolean  @default(false) // System roles cannot be deleted
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenantId String? // Null for default roles that apply to all tenants
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  users       User[]
+  permissions RolePermission[]
+
+  @@unique([name, tenantId])
+}
+
+model Permission {
+  id          String  @id @default(cuid())
+  action      String  @unique // e.g., "manage_users", "view_fees"
+  description String?
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  id           String @id @default(cuid())
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+// --- ACADEMIC SETUP ---
+
+model AcademicSession {
+  id        String   @id @default(cuid())
+  name      String // e.g., "2024-2025"
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean  @default(false)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  enrollments   StudentEnrollment[]
+  feeStructures FeeStructure[]
+  exams         Exam[]
+
+  @@unique([name, tenantId])
+}
+
+model Class {
+  id       String @id @default(cuid())
+  name     String // e.g., "Class 1", "Class 10"
+  order    Int    @default(0) // For sorting
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  sections      Section[]
+  enrollments   StudentEnrollment[]
+  feeStructures FeeStructure[]
+  classSubjects ClassSubject[]
+  timetables    TimetablePeriod[]
+
+  @@unique([name, tenantId])
+}
+
+model Section {
+  id       String @id @default(cuid())
+  name     String // e.g., "A", "B"
+  classId  String
+  class    Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  enrollments StudentEnrollment[]
+  timetables  TimetablePeriod[]
+
+  @@unique([name, classId, tenantId])
+}
+
+// --- STUDENT MANAGEMENT ---
+
+model StudentProfile {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  admissionNumber String
+  rollNumber      String?
+  dob             DateTime?
+  fatherName      String?
+  motherName      String?
+  bloodGroup      String?
+  gender          String?
+  isActive        Boolean        @default(true)
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+
+  enrollments StudentEnrollment[]
+  fees        StudentFee[]
+  marks       StudentMark[]
+
+  transportRouteId String?
+  transportRoute   TransportRoute? @relation(fields: [transportRouteId], references: [id])
+
+  @@unique([admissionNumber, tenantId])
+}
+
+model StudentEnrollment {
+  id        String          @id @default(cuid())
+  studentId String
+  student   StudentProfile  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  sessionId String
+  session   AcademicSession @relation(fields: [sessionId], references: [id])
+  classId   String
+  class     Class           @relation(fields: [classId], references: [id])
+  sectionId String?
+  section   Section?        @relation(fields: [sectionId], references: [id])
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([studentId, sessionId, tenantId])
+}
+
+// --- FEE MANAGEMENT ---
+
+model FeeHead {
+  id           String  @id @default(cuid())
+  name         String // e.g., "Tuition Fee", "Bus Fee"
+  description  String?
+  isRefundable Boolean @default(false)
+  tenantId     String
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+
+  structures FeeStructure[]
+
+  @@unique([name, tenantId])
+}
+
+model FeeStructure {
+  id        String          @id @default(cuid())
+  feeHeadId String
+  feeHead   FeeHead         @relation(fields: [feeHeadId], references: [id])
+  sessionId String
+  session   AcademicSession @relation(fields: [sessionId], references: [id])
+  classId   String? // If null, applies to all classes
+  class     Class?          @relation(fields: [classId], references: [id])
+  transportRouteId String?
+  transportRoute   TransportRoute? @relation(fields: [transportRouteId], references: [id])
+  amount         Float
+  frequency      String // e.g., "MONTHLY", "YEARLY", "ONE_TIME"
+  isAdmissionFee Boolean @default(false)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  installments FeeInstallment[]
+}
+
+model FeeInstallment {
+  id             String       @id @default(cuid())
+  feeStructureId String
+  feeStructure   FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+  name           String // e.g., "April Installment"
+  dueDate        DateTime
+  amount         Float
+
+  studentFees StudentFee[]
+}
+
+model StudentFee {
+  id            String         @id @default(cuid())
+  studentId     String
+  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  installmentId String
+  installment   FeeInstallment @relation(fields: [installmentId], references: [id])
+  amountDue     Float
+  amountPaid    Float          @default(0)
+  discount      Float          @default(0)
+  status        String         @default("PENDING") // PENDING, PARTIAL, PAID
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  payments FeePayment[]
+
+  @@unique([studentId, installmentId])
+}
+
+model FeePayment {
+  id            String     @id @default(cuid())
+  studentFeeId  String
+  studentFee    StudentFee @relation(fields: [studentFeeId], references: [id], onDelete: Cascade)
+  amount        Float
+  paymentDate   DateTime   @default(now())
+  paymentMethod String // CASH, ONLINE, CHEQUE
+  transactionId String? // For online payments
+  receiptId     String? // Permanent receipt reference
+  remarks       String?
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+}
+
+// --- SUBJECT MANAGEMENT ---
+
+model Subject {
+  id       String  @id @default(cuid())
+  name     String
+  code     String?
+  type     String  @default("THEORY") // THEORY, PRACTICAL
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+
+  classSubjects ClassSubject[]
+  studentMarks  StudentMark[]
+  timetables    TimetablePeriod[]
+
+  @@unique([name, tenantId])
+}
+
+model ClassSubject {
+  id        String  @id @default(cuid())
+  classId   String
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacherId String?
+  teacher   User?   @relation("TeacherSubjects", fields: [teacherId], references: [id])
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([classId, subjectId, tenantId])
+}
+
+// --- EXAM SYSTEM ---
+
+model ExamType {
+  id          String  @id @default(cuid())
+  name        String // e.g., "Unit Test", "Final Exam"
+  description String?
+  tenantId    String
+  tenant      Tenant  @relation(fields: [tenantId], references: [id])
+
+  exams Exam[]
+
+  @@unique([name, tenantId])
+}
+
+model Exam {
+  id         String          @id @default(cuid())
+  examTypeId String
+  examType   ExamType        @relation(fields: [examTypeId], references: [id])
+  sessionId  String
+  session    AcademicSession @relation(fields: [sessionId], references: [id])
+  name       String // e.g., "Term 1 Final"
+  startDate  DateTime?
+  endDate    DateTime?
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  marks StudentMark[]
+}
+
+model StudentMark {
+  id            String         @id @default(cuid())
+  examId        String
+  exam          Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subjectId     String
+  subject       Subject        @relation(fields: [subjectId], references: [id])
+  marksObtained Float
+  maxMarks      Float
+  grade         String?
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([examId, studentId, subjectId])
+}
+
+// --- TIMETABLE BUILDER ---
+
+model TimetablePeriod {
+  id        String  @id @default(cuid())
+  classId   String
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  teacherId String
+  teacher   User    @relation("TeacherTimetable", fields: [teacherId], references: [id])
+
+  dayOfWeek Int // 0 = Sunday, 1 = Monday
+  startTime String // "09:00"
+  endTime   String // "09:45"
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+}
+
+// --- DYNAMIC FORMS & CERTIFICATES ---
+
+model FormTemplate {
+  id          String  @id @default(cuid())
+  name        String // e.g., "Admission Form"
+  description String?
+  fields      String // JSON string defining fields
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model CertificateTemplate {
+  id      String @id @default(cuid())
+  name    String // e.g., "Transfer Certificate"
+  content String // HTML/Text with placeholders like {{StudentName}}
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model NotificationTemplate {
+  id      String @id @default(cuid())
+  name    String // e.g., "Fee Reminder"
+  type    String // SMS, EMAIL, WHATSAPP
+  content String // Text with placeholders
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model TransportRoute {
+  id            String  @id @default(cuid())
+  name          String // e.g., "Route A - North"
+  vehicleNumber String?
+  driverName    String?
+  driverPhone   String?
+  feeAmount     Float   @default(0) // Monthly fee for this route
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  students StudentProfile[]
+  feeStructures FeeStructure[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, tenantId])
+}
