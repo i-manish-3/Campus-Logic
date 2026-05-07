@@ -1,6 +1,22 @@
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
+import { Metadata } from 'next';
+
+export async function generateMetadata({ params }: { params: Promise<{ tenantId: string }> }): Promise<Metadata> {
+  const { tenantId } = await params;
+  const tenant = await prisma.tenant.findUnique({
+    where: { domain: tenantId }
+  }) || await prisma.tenant.findUnique({
+    where: { id: tenantId }
+  });
+
+  const schoolName = tenant?.name || 'School Portal';
+  return {
+    title: `${schoolName} | My Digital Academy`,
+    description: `Official management portal for ${schoolName}`,
+  };
+}
 
 export default async function SchoolLayout({
   children,

@@ -2,8 +2,8 @@ import SuperadminSidebar from '@/components/SuperadminSidebar';
 import SuperadminProfileMenu from '@/components/SuperadminProfileMenu';
 
 export const metadata = {
-  title: 'Super Admin — Campus-Logic',
-  description: 'Campus-Logic Super Admin Control Panel',
+  title: 'Super Admin — My Digital Academy',
+  description: 'My Digital Academy Super Admin Control Panel',
 };
 
 export default function SuperadminLayout({ children }: { children: React.ReactNode }) {
@@ -54,7 +54,7 @@ export default function SuperadminLayout({ children }: { children: React.ReactNo
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
             <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '500' }}>
-              Campus-Logic v2.0
+              My Digital Academy v2.0
             </div>
             <SuperadminProfileMenu />
           </div>

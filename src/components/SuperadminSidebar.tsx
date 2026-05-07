@@ -42,7 +42,7 @@ export default function SuperadminSidebar() {
             <span className="material-symbols-rounded" style={{ fontSize: '1.25rem', color: 'white' }}>rocket_launch</span>
           </div>
           <div>
-            <div style={{ fontSize: '1rem', fontWeight: '800', color: 'white', letterSpacing: '-0.01em' }}>Campus-Logic</div>
+            <div style={{ fontSize: '1rem', fontWeight: '800', color: 'white', letterSpacing: '-0.01em' }}>My Digital Academy</div>
             <div style={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Super Admin</div>
           </div>
         </div>

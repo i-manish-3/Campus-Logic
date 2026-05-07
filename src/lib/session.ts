@@ -1,4 +1,4 @@
-const SECRET = process.env.SESSION_SECRET || 'campus-logic-secret-key-change-in-production';
+const SECRET = process.env.SESSION_SECRET || 'my-digital-academy-secret-key-change-in-production';
 
 export type SessionPayload = {
   userId: string;
@@ -94,5 +94,5 @@ export async function verifySession(cookie: string): Promise<SessionPayload | nu
   }
 }
 
-export const SESSION_COOKIE = 'cl_session';
+export const SESSION_COOKIE = 'mda_session';
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days in seconds

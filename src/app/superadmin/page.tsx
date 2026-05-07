@@ -82,7 +82,7 @@ export default async function SuperadminDashboard() {
           Platform Overview
         </h1>
         <p style={{ margin: '0.5rem 0 0', color: '#64748b', fontSize: '0.95rem' }}>
-          Real-time insights across all Campus-Logic tenants.
+          Real-time insights across all My Digital Academy tenants.
         </p>
       </div>
 

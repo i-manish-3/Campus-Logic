@@ -150,7 +150,23 @@ export default async function StudentsPage({ params }: { params: Promise<{ tenan
                     </td>
                     <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-
+                        <Link 
+                          href={`/school/${tenantId}/students/${student.id}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            backgroundColor: '#f1f5f9',
+                            color: '#475569',
+                            textDecoration: 'none'
+                          }}
+                          title="View Profile"
+                        >
+                          <span className="material-symbols-rounded" style={{ fontSize: '1.25rem' }}>visibility</span>
+                        </Link>
                         <EditStudentModal
                           tenantId={actualTenantId}
                           student={student}

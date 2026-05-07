@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Campus-Logic | Advanced School ERP",
+  title: "My Digital Academy | Advanced School ERP",
   description: "Dynamic SaaS platform for school management.",
 };
 

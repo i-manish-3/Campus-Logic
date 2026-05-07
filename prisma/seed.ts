@@ -7,10 +7,10 @@ async function main() {
 
   // Create Super Admin User
   const superAdmin = await prisma.user.upsert({
-    where: { email: 'admin@campuslogic.com' },
+    where: { email: 'admin@mydigitalacademy.com' },
     update: {},
     create: {
-      email: 'admin@campuslogic.com',
+      email: 'admin@mydigitalacademy.com',
       passwordHash: 'hashed_password_placeholder',
       firstName: 'Super',
       lastName: 'Admin',

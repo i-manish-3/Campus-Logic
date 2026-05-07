@@ -10,18 +10,18 @@ datasource db {
 // Multi-Tenant Core
 
 model Tenant {
-  id        String   @id @default(cuid())
-  name      String
-  domain    String?  @unique // Custom domain or subdomain
-  logoUrl   String?
-  signatureUrl String?
-  address   String?
+  id            String   @id @default(cuid())
+  name          String
+  domain        String?  @unique // Custom domain or subdomain
+  logoUrl       String?
+  signatureUrl  String?
+  address       String?
   contactNumber String?
-  email     String?
-  receiptPrefix String @default("RCPT")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  email         String?
+  receiptPrefix String   @default("RCPT")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   users User[]
   roles Role[]
@@ -31,6 +31,7 @@ model Tenant {
   classes          Class[]
   sections         Section[]
   studentProfiles  StudentProfile[]
+  parentProfiles   ParentProfile[]
   enrollments      StudentEnrollment[]
   feeHeads         FeeHead[]
   feeStructures    FeeStructure[]
@@ -68,6 +69,7 @@ model User {
   role   Role?   @relation(fields: [roleId], references: [id])
 
   studentProfile StudentProfile?
+  parentProfile  ParentProfile?
   taughtSubjects ClassSubject[]    @relation("TeacherSubjects")
   timetables     TimetablePeriod[] @relation("TeacherTimetable")
 }
@@ -162,15 +164,27 @@ model StudentProfile {
   userId          String    @unique
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   admissionNumber String
+  admissionDate   DateTime  @default(now())
   rollNumber      String?
   dob             DateTime?
   fatherName      String?
   motherName      String?
   bloodGroup      String?
   gender          String?
-  isActive        Boolean        @default(true)
+  category        String? // e.g., GEN, OBC, SC, ST
+  house           String? // e.g., Red, Blue, Green
+  religion        String?
+  caste           String?
+  motherTongue    String?
+  nationalId      String? // e.g., Aadhar Number
+  studentPhone    String?
+  photo           String?
+  isActive        Boolean   @default(true)
   tenantId        String
   tenant          Tenant    @relation(fields: [tenantId], references: [id])
+
+  parentProfileId String?
+  parentProfile   ParentProfile? @relation(fields: [parentProfileId], references: [id])
 
   enrollments StudentEnrollment[]
   fees        StudentFee[]
@@ -180,6 +194,18 @@ model StudentProfile {
   transportRoute   TransportRoute? @relation(fields: [transportRouteId], references: [id])
 
   @@unique([admissionNumber, tenantId])
+}
+
+model ParentProfile {
+  id       String           @id @default(cuid())
+  userId   String           @unique
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students StudentProfile[]
+  tenantId String
+  tenant   Tenant           @relation(fields: [tenantId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model StudentEnrollment {
@@ -215,18 +241,18 @@ model FeeHead {
 }
 
 model FeeStructure {
-  id        String          @id @default(cuid())
-  feeHeadId String
-  feeHead   FeeHead         @relation(fields: [feeHeadId], references: [id])
-  sessionId String
-  session   AcademicSession @relation(fields: [sessionId], references: [id])
-  classId   String? // If null, applies to all classes
-  class     Class?          @relation(fields: [classId], references: [id])
+  id               String          @id @default(cuid())
+  feeHeadId        String
+  feeHead          FeeHead         @relation(fields: [feeHeadId], references: [id])
+  sessionId        String
+  session          AcademicSession @relation(fields: [sessionId], references: [id])
+  classId          String? // If null, applies to all classes
+  class            Class?          @relation(fields: [classId], references: [id])
   transportRouteId String?
   transportRoute   TransportRoute? @relation(fields: [transportRouteId], references: [id])
-  amount         Float
-  frequency      String // e.g., "MONTHLY", "YEARLY", "ONE_TIME"
-  isAdmissionFee Boolean @default(false)
+  amount           Float
+  frequency        String // e.g., "MONTHLY", "YEARLY", "ONE_TIME"
+  isAdmissionFee   Boolean         @default(false)
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
@@ -422,7 +448,7 @@ model TransportRoute {
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
 
-  students StudentProfile[]
+  students      StudentProfile[]
   feeStructures FeeStructure[]
 
   createdAt DateTime @default(now())

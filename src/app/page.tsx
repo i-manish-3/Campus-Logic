@@ -41,7 +41,7 @@ export default function Home() {
           <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span className="material-symbols-rounded" style={{ fontSize: '1.3rem', color: 'white' }}>school</span>
           </div>
-          CampusLogic
+          My Digital Academy
         </div>
         <Link href="/login" className="nav-btn" style={{
           padding: '0.6rem 1.5rem', borderRadius: '99px', backgroundColor: 'rgba(255,255,255,0.05)',
@@ -144,7 +144,7 @@ export default function Home() {
       </main>
 
       <footer style={{ padding: '2rem', textAlign: 'center', color: '#475569', fontSize: '0.85rem', zIndex: 10 }}>
-        © {new Date().getFullYear()} CampusLogic Platform. Built for excellence.
+        © {new Date().getFullYear()} My Digital Academy Platform. Built for excellence.
       </footer>
 
       <style jsx global>{`

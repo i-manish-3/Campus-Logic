@@ -126,8 +126,8 @@ export default function OnboardPage() {
           </div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: '800', color: '#0f172a', margin: '0 0 0.75rem' }}>School Onboarded!</h1>
           <p style={{ color: '#64748b', marginBottom: '2rem', lineHeight: '1.6' }}>
-            <strong>{form.name}</strong> has been successfully registered on Campus-Logic.<br />
-            Portal URL: <code style={{ backgroundColor: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>campus-logic.in/school/{success.domain}</code>
+            <strong>{form.name}</strong> has been successfully registered on My Digital Academy.<br />
+            Portal URL: <code style={{ backgroundColor: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>mydigitalacademy.in/school/{success.domain}</code>
           </p>
           
           {success.adminEmail && success.adminPassword && (
@@ -184,7 +184,7 @@ export default function OnboardPage() {
       {/* Header */}
       <div style={{ marginBottom: '2.5rem' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#0f172a', margin: 0, letterSpacing: '-0.03em' }}>Onboard New School</h1>
-        <p style={{ margin: '0.5rem 0 0', color: '#64748b', fontSize: '0.95rem' }}>Register a new school tenant on the Campus-Logic platform.</p>
+        <p style={{ margin: '0.5rem 0 0', color: '#64748b', fontSize: '0.95rem' }}>Register a new school tenant on the My Digital Academy platform.</p>
       </div>
 
       {/* Stepper */}
@@ -264,7 +264,7 @@ export default function OnboardPage() {
                     padding: '0.75rem 1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
                     borderRight: 'none', borderRadius: '10px 0 0 10px', fontSize: '0.875rem', color: '#64748b', fontWeight: '600',
                     whiteSpace: 'nowrap',
-                  }}>campus-logic.in/school/</span>
+                  }}>mydigitalacademy.in/school/</span>
                   <input
                     style={{ ...inputStyle, borderRadius: '0 10px 10px 0', flex: 1 }}
                     value={form.domain}
@@ -383,7 +383,7 @@ export default function OnboardPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 {[
                   { label: 'School Name', value: form.name },
-                  { label: 'Domain', value: `campus-logic.in/school/${form.domain}` },
+                  { label: 'Domain', value: `mydigitalacademy.in/school/${form.domain}` },
                   { label: 'Contact Email', value: form.email || '—' },
                   { label: 'Contact Phone', value: form.phone || '—' },
                   { label: 'Address', value: form.address || '—' },
