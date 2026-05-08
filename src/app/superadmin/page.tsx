@@ -233,6 +233,16 @@ export default async function SuperadminDashboard() {
                 <span className="material-symbols-rounded" style={{ fontSize: '1.2rem', color: '#6366f1' }}>manage_accounts</span>
                 Manage All Schools
               </Link>
+              <Link href="/superadmin/roles" style={{
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                padding: '0.9rem 1rem', borderRadius: '12px',
+                backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                textDecoration: 'none', color: '#334155',
+                fontWeight: '600', fontSize: '0.9rem',
+              }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '1.2rem', color: '#10b981' }}>security</span>
+                Roles & Permissions
+              </Link>
             </div>
           </div>
 

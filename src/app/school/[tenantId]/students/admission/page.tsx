@@ -1,6 +1,8 @@
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import AdmissionForm from './AdmissionForm';
+import { getSession } from '@/lib/session';
+import { hasPermission } from '@/lib/permissions';
 
 export default async function AdmissionPage({
   params
@@ -8,6 +10,25 @@ export default async function AdmissionPage({
   params: Promise<{ tenantId: string }>;
 }) {
   const { tenantId } = await params;
+  const session = await getSession();
+
+  if (!session || !(await hasPermission(session.userId, 'manage_admission'))) {
+    return (
+      <div style={{ padding: '4rem 2rem', textAlign: 'center', backgroundColor: '#fff', borderRadius: '24px', border: '1px solid #f1f5f9', maxWidth: '600px', margin: '4rem auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+        <div style={{ width: '80px', height: '80px', backgroundColor: '#fef2f2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+          <span className="material-symbols-rounded" style={{ fontSize: '3rem', color: '#ef4444' }}>lock</span>
+        </div>
+        <h2 style={{ color: '#1e293b', fontWeight: '800', marginBottom: '1rem', fontSize: '1.5rem' }}>Access Denied</h2>
+        <p style={{ color: '#64748b', marginBottom: '2rem', lineHeight: '1.6' }}>
+          You do not have the <b>manage_admission</b> permission required to access the student registration wizard.
+          Please contact your administrator for access.
+        </p>
+        <a href={`/school/${tenantId}`} style={{ backgroundColor: '#1e293b', color: 'white', padding: '0.8rem 2rem', borderRadius: '12px', textDecoration: 'none', fontWeight: '700', fontSize: '0.9rem', display: 'inline-block' }}>
+          Back to Dashboard
+        </a>
+      </div>
+    );
+  }
 
   const tenant = await prisma.tenant.findUnique({
     where: { domain: tenantId },
@@ -70,19 +91,26 @@ export default async function AdmissionPage({
     }
   }
 
-  return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Student Admission</h1>
-        <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>Create a new student profile for the current academic session.</p>
-      </div>
+  const allSessions = await prisma.academicSession.findMany({
+    where: { tenantId: tenant.id },
+    orderBy: { name: 'desc' }
+  });
 
+  const routes = await prisma.transportRoute.findMany({
+    where: { tenantId: tenant.id }
+  });
+
+  return (
+    <div style={{ padding: '1rem', width: '100%', margin: '0 auto' }}>
       <AdmissionForm
         tenantId={tenant.id}
         classes={classes}
-        currentSessionId={currentSession?.id}
+        routes={routes}
+        allSessions={allSessions}
+        currentSessionName={currentSession?.name || '2025-26'}
         nextAdmissionNumber={nextAdmissionNumber}
       />
     </div>
   );
 }
+

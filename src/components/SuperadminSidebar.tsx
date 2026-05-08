@@ -8,6 +8,7 @@ const navItems = [
   { name: 'Overview', path: '/superadmin', icon: 'dashboard' },
   { name: 'All Schools', path: '/superadmin/schools', icon: 'corporate_fare' },
   { name: 'Onboard School', path: '/superadmin/onboard', icon: 'add_business' },
+  { name: 'Roles & Permissions', path: '/superadmin/roles', icon: 'security' },
 ];
 
 export default function SuperadminSidebar() {
@@ -125,18 +126,18 @@ export default function SuperadminSidebar() {
             <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Super Admin</div>
             <div style={{ fontSize: '0.7rem', color: '#475569' }}>superadmin</div>
           </div>
-          <form action={logoutAction}>
-            <button type="submit" style={{
+          <button 
+            onClick={() => logoutAction()}
+            style={{
               background: 'none', border: 'none', color: '#475569', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '0.25rem', borderRadius: '6px', transition: 'color 0.2s'
             }} title="Sign out"
             onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
             onMouseLeave={e => e.currentTarget.style.color = '#475569'}
-            >
-              <span className="material-symbols-rounded" style={{ fontSize: '1.2rem' }}>logout</span>
-            </button>
-          </form>
+          >
+            <span className="material-symbols-rounded" style={{ fontSize: '1.2rem' }}>logout</span>
+          </button>
         </div>
       </div>
     </aside>

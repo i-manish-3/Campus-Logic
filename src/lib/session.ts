@@ -96,3 +96,16 @@ export async function verifySession(cookie: string): Promise<SessionPayload | nu
 
 export const SESSION_COOKIE = 'mda_session';
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days in seconds
+
+import { cookies } from 'next/headers';
+
+/**
+ * Retrieves and verifies the current session from cookies.
+ * Works in Server Components and Server Actions.
+ */
+export async function getSession(): Promise<SessionPayload | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  return verifySession(token);
+}

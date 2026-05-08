@@ -130,147 +130,184 @@ export async function getNextAdmissionNumber(tenantId: string) {
   }
 }
 
-export async function admitStudent(tenantId: string, formData: FormData) {
+import { getSession } from '@/lib/session';
+import { ensurePermission } from '@/lib/permissions';
+
+export async function admitStudent(tenantId: string, data: any) {
+  const session = await getSession();
+  if (!session) return { error: 'Authentication required' };
+  
   try {
-    const firstName = (formData.get('firstName') as string)?.trim();
-    const lastName = (formData.get('lastName') as string)?.trim();
-    const email = (formData.get('email') as string)?.trim();
-    const dobStr = formData.get('dob') as string;
-    const gender = formData.get('gender') as string;
+    await ensurePermission(session.userId, 'manage_admission');
+    const {
+      academicYear, admissionNumber, registrationNumber, admissionDate, fullName,
+      username, password, dob, gender, rollNumber, bloodGroup,
+      nationalId, penNumber, samagraId, apaarId, udiseId,
+      height, weight, studentPhoto,
+      motherName, motherOccupation, motherQualification, motherEmail, motherAadhaar, motherIncome, motherContact,
+      fatherName, fatherOccupation, fatherQualification, fatherEmail, fatherAadhaar, fatherIncome, fatherContact,
+      motherTongue, ewsStatus, singleGirlChild, divyangStatus,
+      permStreet, permLandmark, permArea, permCity, permState, permCountry, permPincode,
+      localStreet, localLandmark, localArea, localCity, localState, localCountry, localPincode,
+      village, post, policeStation, wardNumber,
+      classId, admissionSession, medium, religion, category, caste, areaType, medicalHistory,
+      prevSchoolName, affiliatedTo, prevSchoolAddress, lastClassAttended, prevResult, tcNumber, tcDate,
+      transportRouteId, transportStop, hostelName, roomNumber, bedNumber,
+      bankAccountNumber, ifscCode, feeGroup, feeIdConcession, monthlyFeeDiscount, transportDiscount,
+      docBirthCertificate, docTransferCertificate, docStudentPhoto, docFatherPhoto, docMotherPhoto,
+      docIncomeCert, docEwsCert, docCasteCert
+    } = data;
 
-    const admissionNumber = formData.get('admissionNumber') as string;
-    const sessionId = formData.get('sessionId') as string;
-    const classId = formData.get('classId') as string;
-    const sectionId = formData.get('sectionId') as string;
-    const transportRouteId = formData.get('transportRouteId') as string;
+    // Perform everything in a transaction for safety
+    const studentProfile = await prisma.$transaction(async (tx) => {
+      // 1. Resolve Session
+      let session = await tx.academicSession.findFirst({
+        where: { tenantId, name: academicYear }
+      });
+      
+      if (!session) {
+        session = await tx.academicSession.create({
+          data: {
+            name: academicYear,
+            startDate: new Date(new Date().getFullYear(), 3, 1),
+            endDate: new Date(new Date().getFullYear() + 1, 2, 31),
+            isActive: true,
+            tenantId
+          }
+        });
+      }
 
-    const parentOption = formData.get('parentOption') as string;
-    const fatherName = (formData.get('fatherName') as string)?.trim();
-    const fatherEmail = (formData.get('fatherEmail') as string)?.trim();
-    const fatherPhone = (formData.get('fatherPhone') as string)?.trim();
-    const existingParentId = formData.get('existingParentId') as string;
+      // 2. Resolve Roles
+      let [studentRole, parentRole] = await Promise.all([
+        tx.role.findUnique({ where: { name_tenantId: { name: 'STUDENT', tenantId } } }),
+        tx.role.findUnique({ where: { name_tenantId: { name: 'PARENT', tenantId } } })
+      ]);
 
-    console.log("ADMIT_START:", { email, admissionNumber, sessionId, classId, parentOption });
+      if (!studentRole) studentRole = await tx.role.create({ data: { name: 'STUDENT', isSystem: true, tenantId } });
+      if (!parentRole) parentRole = await tx.role.create({ data: { name: 'PARENT', isSystem: true, tenantId } });
 
-    if (!firstName || !email || !admissionNumber || !sessionId || !classId) {
-      return { error: 'Missing required academic or student fields.' };
-    }
+      // 3. Handle Parent
+      let parentProfileId: string | undefined;
+      if (fatherEmail || fatherContact) {
+        const parentEmail = fatherEmail || `${fatherContact}@mda.com`;
+        let parentUser = await tx.user.findFirst({
+          where: { email: parentEmail, tenantId }
+        });
 
-    // 1. Check Student Email and Admission Number uniqueness
-    const emailExists = await prisma.user.findUnique({ where: { email } });
-    if (emailExists) return { error: `The student email "${email}" is already registered.` };
-
-    const admissionExists = await prisma.studentProfile.findUnique({
-      where: { admissionNumber_tenantId: { admissionNumber, tenantId } }
-    });
-    if (admissionExists) return { error: `Admission Number "${admissionNumber}" already exists in this school.` };
-
-    // 2. Manage Roles
-    let [studentRole, parentRole] = await Promise.all([
-      prisma.role.findFirst({ where: { name: 'Student', tenantId } }),
-      prisma.role.findFirst({ where: { name: 'Parent', tenantId } })
-    ]);
-
-    if (!studentRole) studentRole = await prisma.role.create({ data: { name: 'Student', isSystem: true, tenantId } });
-    if (!parentRole) parentRole = await prisma.role.create({ data: { name: 'Parent', isSystem: true, tenantId } });
-
-    // 3. Perform Transaction
-    const resultId = await prisma.$transaction(async (tx) => {
-      let parentProfileId: string | null = null;
-
-      // Handle Parent creation/linking
-      if (parentOption === 'new' && fatherEmail) {
-        // Check if parent email is same as student email
-        if (fatherEmail === email) throw new Error("Parent and student cannot use the same email address.");
-
-        // Check if parent user already exists
-        let parentUser = await tx.user.findUnique({ where: { email: fatherEmail } });
         if (!parentUser) {
+          const passwordHash = crypto.createHash('sha256').update('parent123').digest('hex');
           parentUser = await tx.user.create({
             data: {
-              firstName: fatherName || 'Parent',
-              email: fatherEmail,
-              passwordHash: crypto.createHash('sha256').update('parent123').digest('hex'),
-              roleId: parentRole.id,
-              tenantId
+              email: parentEmail,
+              firstName: fatherName?.split(' ')[0] || 'Father',
+              lastName: fatherName?.split(' ').slice(1).join(' ') || '',
+              passwordHash,
+              role: { connect: { id: parentRole.id } },
+              tenant: { connect: { id: tenantId } }
             }
           });
         }
 
-        let parentProfile = await tx.parentProfile.findUnique({ where: { userId: parentUser.id } });
+        let parentProfile = await tx.parentProfile.findUnique({
+          where: { userId: parentUser.id }
+        });
+
         if (!parentProfile) {
           parentProfile = await tx.parentProfile.create({
-            data: { userId: parentUser.id, tenantId }
+            data: {
+              userId: parentUser.id,
+              tenantId
+            }
           });
         }
         parentProfileId = parentProfile.id;
-      } else if (parentOption === 'existing' && existingParentId) {
-        parentProfileId = existingParentId;
       }
 
-      // Create Student User
+      // 4. Create Student User
+      const studentUsername = username || `std${registrationNumber?.replace(/[^a-zA-Z0-9]/g, '')}`;
+      const studentEmail = `${studentUsername}@mda.com`;
+      const passwordHash = crypto.createHash('sha256').update(password || 'student123').digest('hex');
+
       const studentUser = await tx.user.create({
         data: {
-          firstName,
-          lastName,
-          email,
-          passwordHash: crypto.createHash('sha256').update('password123').digest('hex'),
-          roleId: studentRole.id,
-          tenantId
+          email: studentEmail,
+          firstName: fullName?.split(' ')[0] || 'Student',
+          lastName: fullName?.split(' ').slice(1).join(' ') || '',
+          passwordHash,
+          role: { connect: { id: studentRole.id } },
+          tenant: { connect: { id: tenantId } }
         }
       });
 
-      // Create Student Profile
-      const admissionDateVal = formData.get('admissionDate') as string;
-      const dobVal = formData.get('dob') as string;
-      const photoFile = formData.get('photo') as File;
-      let photoBase64 = null;
-
-      if (photoFile && photoFile.size > 0) {
-        const buffer = await photoFile.arrayBuffer();
-        const base64 = Buffer.from(buffer).toString('base64');
-        photoBase64 = `data:${photoFile.type};base64,${base64}`;
-      }
-
+      // 5. Create Student Profile
       const profile = await tx.studentProfile.create({
         data: {
           userId: studentUser.id,
-          admissionNumber,
-          admissionDate: (admissionDateVal && !isNaN(Date.parse(admissionDateVal))) ? new Date(admissionDateVal) : new Date(),
-          dob: (dobVal && !isNaN(Date.parse(dobVal))) ? new Date(dobVal) : null,
-          gender,
+          tenantId,
+          admissionNumber: admissionNumber || registrationNumber,
+          registrationNumber,
+          admissionDate: new Date(admissionDate),
+          rollNumber,
+          dob: dob ? new Date(dob) : null,
           fatherName,
-          motherName: formData.get('motherName') as string,
-          studentPhone: formData.get('studentPhone') as string,
+          motherName,
+          bloodGroup,
+          gender,
+          category,
+          religion,
+          caste,
+          motherTongue,
+          nationalId,
+          penNumber, samagraId, apaarId, udiseId,
+          height, weight,
+          photo: studentPhoto,
+          
+          motherOccupation, motherEmail, motherQualification, motherAadhaar, motherIncome, motherContact,
+          fatherOccupation, fatherEmail, fatherQualification, fatherAadhaar, fatherIncome, fatherContact,
+
+          ewsStatus: ewsStatus === 'yes',
+          singleGirlChild: singleGirlChild === 'yes',
+          divyangStatus: divyangStatus === 'yes',
+
+          permStreet, permLandmark, permArea, permCity, permState, permCountry, permPincode,
+          localStreet, localLandmark, localArea, localCity, localState, localCountry, localPincode,
+          village, post, policeStation, wardNumber,
+
+          medium, areaType, medicalHistory,
+          prevSchoolName, prevSchoolAddress, lastClassAttended, prevResult, affiliatedTo, tcNumber,
+          tcDate: tcDate ? new Date(tcDate) : null,
+
+          hostelName, roomNumber, bedNumber,
+          bankAccountNumber, ifscCode, feeGroup, feeIdConcession,
+          monthlyFeeDiscount: monthlyFeeDiscount ? parseFloat(monthlyFeeDiscount) : 0,
+          transportDiscount: transportDiscount ? parseFloat(transportDiscount) : 0,
+
+          docBirthCertificate, docTransferCertificate, docStudentPhoto, docFatherPhoto, docMotherPhoto,
+          docIncomeCert, docEwsCert, docCasteCert,
+
           parentProfileId,
           transportRouteId: transportRouteId || null,
-          tenantId,
-          religion: formData.get('religion') as string,
-          caste: formData.get('caste') as string,
-          category: formData.get('category') as string,
-          house: formData.get('house') as string,
-          motherTongue: formData.get('motherTongue') as string,
-          nationalId: formData.get('nationalId') as string,
-          photo: photoBase64
         }
       });
 
-      // Create Enrollment
-      await tx.studentEnrollment.create({
-        data: {
-          studentId: profile.id,
-          sessionId,
-          classId,
-          sectionId: sectionId || null,
-          tenantId
-        }
-      });
+      // 5. Create Enrollment
+      if (classId) {
+        await tx.studentEnrollment.create({
+          data: {
+            studentId: profile.id,
+            classId,
+            sectionId: null,
+            sessionId: session.id,
+            tenantId
+          }
+        });
+      }
 
-      // Auto-assign fees
+      // 6. Auto-assign fees
       const feeStructures = await tx.feeStructure.findMany({
         where: {
           tenantId,
-          sessionId,
+          sessionId: session.id,
           OR: [
             { classId, transportRouteId: null },
             { classId: null, transportRouteId: null },
@@ -280,38 +317,38 @@ export async function admitStudent(tenantId: string, formData: FormData) {
         include: { installments: true }
       });
 
-      const now = new Date();
-      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const mDiscount = parseFloat(monthlyFeeDiscount || '0');
+      const tDiscount = parseFloat(transportDiscount || '0');
 
       for (const structure of feeStructures) {
-        for (const installment of structure.installments) {
-          const dueDate = new Date(installment.dueDate);
-          const isOneTime = structure.frequency === 'ONE_TIME' || structure.isAdmissionFee;
-          const isDueNowOrFuture = dueDate >= currentMonthStart;
+        // Determine which discount applies to this structure
+        const discountToApply = structure.transportRouteId ? tDiscount : (structure.classId ? mDiscount : 0);
 
+        for (const installment of structure.installments) {
+          const finalAmount = Math.max(0, installment.amount - discountToApply);
+          
           await tx.studentFee.create({
             data: {
               studentId: profile.id,
               installmentId: installment.id,
-              amountDue: (isOneTime || isDueNowOrFuture) ? installment.amount : 0,
-              status: (isOneTime || isDueNowOrFuture) ? 'PENDING' : 'EXEMPTED',
+              amountDue: finalAmount,
               tenantId
             }
           });
         }
       }
 
-      return profile.id;
+      return profile;
     });
 
     revalidatePath(`/school/${tenantId}/students`);
-    return { success: true, studentId: resultId };
+    return { success: true, studentId: studentProfile.id };
   } catch (error: any) {
-    console.error("ADMISSION_ERROR:", error);
-    if (error.code === 'P2002') return { error: 'Unique constraint failed. Email or Admission No already in use.' };
-    return { error: error.message || 'Failed to admit student.' };
+    console.error('ADMISSION_ERROR:', error);
+    return { success: false, error: error.message || 'Failed to admit student' };
   }
 }
+
 
 export async function generateFeesFromStructure(tenantId: string, studentId: string) {
   try {

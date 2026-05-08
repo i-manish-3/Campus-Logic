@@ -100,21 +100,19 @@ export default function SuperadminProfileMenu() {
               <span className="material-symbols-rounded" style={{ fontSize: '1.2rem', color: '#64748b' }}>manage_accounts</span>
               Edit Profile
             </button>
-            <form action={logoutAction}>
-              <button 
-                type="submit"
-                style={{
-                  width: '100%', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: '0.9rem', color: '#ef4444', fontWeight: '600', textAlign: 'left'
-                }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#fef2f2'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <span className="material-symbols-rounded" style={{ fontSize: '1.2rem' }}>logout</span>
-                Sign Out
-              </button>
-            </form>
+            <button 
+              onClick={() => logoutAction()}
+              style={{
+                width: '100%', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: '0.9rem', color: '#ef4444', fontWeight: '600', textAlign: 'left'
+              }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#fef2f2'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <span className="material-symbols-rounded" style={{ fontSize: '1.2rem' }}>logout</span>
+              Sign Out
+            </button>
           </div>
         </>
       )}
