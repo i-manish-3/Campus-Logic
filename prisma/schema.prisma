@@ -20,6 +20,7 @@ model Tenant {
   email         String?
   receiptPrefix String   @default("RCPT")
   isActive      Boolean  @default(true)
+  plan          String   @default("BASIC") // BASIC, PRO, ENTERPRISE
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -160,28 +161,121 @@ model Section {
 // --- STUDENT MANAGEMENT ---
 
 model StudentProfile {
-  id              String    @id @default(cuid())
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  admissionNumber String
-  admissionDate   DateTime  @default(now())
-  rollNumber      String?
-  dob             DateTime?
-  fatherName      String?
-  motherName      String?
-  bloodGroup      String?
-  gender          String?
-  category        String? // e.g., GEN, OBC, SC, ST
-  house           String? // e.g., Red, Blue, Green
-  religion        String?
-  caste           String?
-  motherTongue    String?
-  nationalId      String? // e.g., Aadhar Number
-  studentPhone    String?
-  photo           String?
-  isActive        Boolean   @default(true)
-  tenantId        String
-  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  admissionNumber   String
+  registrationNumber String?
+  admissionDate     DateTime  @default(now())
+  rollNumber        String?
+  dob               DateTime?
+  fatherName        String?
+  motherName        String?
+  bloodGroup        String?
+  gender            String?
+  category          String? // e.g., GEN, OBC, SC, ST
+  house             String? // e.g., Red, Blue, Green
+  religion          String?
+  caste             String?
+  motherTongue      String?
+  nationalId        String? // e.g., Aadhar Number (Student)
+  studentPhone      String?
+  photo             String?
+  isActive          Boolean   @default(true)
+  tenantId          String
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+
+  // Government IDs
+  penNumber         String? // Student PEN / Government ID
+  samagraId         String?
+  apaarId           String?
+  udiseId           String?
+
+  // Physical Details
+  height            String? // CM
+  weight            String? // KG
+
+  // Mother Details
+  motherOccupation  String?
+  motherEmail       String?
+  motherQualification String?
+  motherAadhaar     String?
+  motherIncome      String?
+  motherContact     String?
+
+  // Father Details
+  fatherOccupation  String?
+  fatherEmail       String?
+  fatherQualification String?
+  fatherAadhaar     String?
+  fatherIncome      String?
+  fatherContact     String?
+
+  // Status Flags
+  ewsStatus         Boolean @default(false)
+  singleGirlChild   Boolean @default(false)
+  divyangStatus     Boolean @default(false)
+
+  // Permanent Address
+  permStreet        String?
+  permLandmark      String?
+  permArea          String?
+  permCity          String?
+  permState         String?
+  permCountry       String?
+  permPincode       String?
+
+  // Local Address
+  localStreet       String?
+  localLandmark     String?
+  localArea         String?
+  localCity         String?
+  localState        String?
+  localCountry      String?
+  localPincode      String?
+
+  // Additional Address
+  village           String?
+  post              String?
+  policeStation     String?
+  wardNumber        String?
+
+  // Academic Details
+  medium            String? // Medium of Instruction
+  areaType          String? // Urban/Rural
+  medicalHistory    String?
+
+  // Previous School
+  prevSchoolName    String?
+  prevSchoolAddress String?
+  lastClassAttended String?
+  prevResult        String?
+  affiliatedTo      String?
+  tcNumber          String?
+  tcDate            DateTime?
+
+  // Hostel Details
+  hostelName        String?
+  roomNumber        String?
+  bedNumber         String?
+
+  // Bank & Fee Details
+  bankAccountNumber String?
+  ifscCode          String?
+  monthlyFeeDiscount Float?
+  feeIdConcession   String?
+  transportDiscount  Float?
+  feeGroup          String?
+
+  // Documents (stored as base64 or file paths)
+  docBirthCertificate String?
+  docTransferCertificate String?
+  docStudentPhoto   String?
+  docFatherPhoto    String?
+  docMotherPhoto    String?
+  docIncomeCert     String?
+  docEwsCert        String?
+  docCasteCert      String?
 
   parentProfileId String?
   parentProfile   ParentProfile? @relation(fields: [parentProfileId], references: [id])
