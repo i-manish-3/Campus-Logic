@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import crypto from 'crypto';
 import { verifySession, SESSION_COOKIE } from '@/lib/session';
 import { cookies } from 'next/headers';
+import { isActionAllowedInPlan } from '@/lib/plans';
 
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -21,6 +22,7 @@ export async function createTenant(formData: FormData) {
   const adminEmail = (formData.get('adminEmail') as string)?.trim().toLowerCase();
   const adminPassword = formData.get('adminPassword') as string;
   const adminName = (formData.get('adminName') as string)?.trim() || 'School Admin';
+  const plan = formData.get('plan') as string || 'BASIC';
 
   if (!name || !domain) {
     return { error: 'School name and domain slug are required.' };
@@ -61,15 +63,38 @@ export async function createTenant(formData: FormData) {
           logoUrl: logoUrl || null,
           receiptPrefix: receiptPrefix?.toUpperCase() || 'RCPT',
           isActive: true,
+          plan: plan,
         }
       });
 
-      // 2. Create School Admin role for this tenant
-      const adminRole = await tx.role.create({
-        data: { name: 'School Admin', isSystem: true, tenantId: tenant.id }
+      // 2. Find Global School Admin Template to copy permissions
+      const globalAdminRole = await tx.role.findFirst({
+        where: { name: 'School Admin', tenantId: null },
+        include: { 
+          permissions: {
+            include: { permission: true }
+          }
+        }
       });
 
-      // 3. Create the School Admin user
+      // 3. Create School Admin role for this tenant, copying permissions from template
+      // ONLY copy permissions that are allowed by the selected plan
+      const adminRole = await tx.role.create({
+        data: { 
+          name: 'School Admin', 
+          isSystem: true, 
+          tenantId: tenant.id,
+          permissions: globalAdminRole ? {
+            create: globalAdminRole.permissions
+              .filter(p => isActionAllowedInPlan(plan, p.permission.action))
+              .map(p => ({
+                permissionId: p.permissionId
+              }))
+          } : undefined
+        }
+      });
+
+      // 4. Create the School Admin user
       const nameParts = adminName.split(' ');
       await tx.user.create({
         data: {
@@ -149,6 +174,7 @@ export async function updateTenant(tenantId: string, formData: FormData) {
   const phone = formData.get('phone') as string;
   const address = formData.get('address') as string;
   const receiptPrefix = formData.get('receiptPrefix') as string;
+  const plan = formData.get('plan') as string;
 
   if (!name) return { error: 'School name is required.' };
 
@@ -161,6 +187,7 @@ export async function updateTenant(tenantId: string, formData: FormData) {
         contactNumber: phone || null,
         address: address || null,
         receiptPrefix: receiptPrefix?.toUpperCase() || 'RCPT',
+        plan: plan || undefined,
       }
     });
 

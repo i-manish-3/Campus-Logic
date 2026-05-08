@@ -11,6 +11,7 @@ type TenantType = {
   contactNumber: string | null;
   address: string | null;
   receiptPrefix: string;
+  plan: string;
 };
 
 export default function EditSchoolModal({ tenant }: { tenant: TenantType }) {
@@ -24,9 +25,10 @@ export default function EditSchoolModal({ tenant }: { tenant: TenantType }) {
     phone: tenant.contactNumber || '',
     address: tenant.address || '',
     receiptPrefix: tenant.receiptPrefix,
+    plan: tenant.plan || 'BASIC',
   });
 
-  const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(prev => ({ ...prev, [key]: e.target.value }));
 
   async function handleSubmit(e: React.FormEvent) {
@@ -117,6 +119,14 @@ export default function EditSchoolModal({ tenant }: { tenant: TenantType }) {
                 <div style={{ gridColumn: 'span 2' }}>
                   <label style={labelStyle}>Address</label>
                   <input style={inputStyle} value={form.address} onChange={update('address')} />
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={labelStyle}>Subscription Plan</label>
+                  <select style={inputStyle} value={form.plan} onChange={update('plan')}>
+                    <option value="BASIC">Basic Plan</option>
+                    <option value="PRO">Pro Plan (Standard)</option>
+                    <option value="ENTERPRISE">Enterprise Plan (All Features)</option>
+                  </select>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
                   <label style={{ ...labelStyle, color: '#94a3b8' }}>Domain (Read-Only)</label>

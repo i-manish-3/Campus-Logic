@@ -98,6 +98,7 @@ export default function OnboardPage() {
     setError('');
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+    fd.append('plan', selectedPlan);
     const res = await createTenant(fd);
     setLoading(false);
     if (res.error) { setError(res.error); return; }
