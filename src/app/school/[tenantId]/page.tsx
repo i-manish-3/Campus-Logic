@@ -1,8 +1,13 @@
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
+import { getSession } from '@/lib/session';
+import ParentDashboard from './ParentDashboard';
 
 export default async function TenantDashboard({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = await params;
+  const session = await getSession();
+
+  if (!session) return notFound();
   
   let tenant = await prisma.tenant.findUnique({ where: { domain: tenantId } }) || 
                await prisma.tenant.findUnique({ where: { id: tenantId } });
@@ -11,6 +16,16 @@ export default async function TenantDashboard({ params }: { params: Promise<{ te
 
   const tid = tenant?.id || 'demo';
   const schoolName = tenant?.name || 'Yug International School';
+
+  // Role-Based Redirection
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    include: { role: true }
+  });
+
+  if (user?.role?.name === 'PARENT' || user?.role?.name === 'Parent') {
+    return <ParentDashboard userId={user.id} tenantId={tenantId} schoolName={schoolName} />;
+  }
   
   // Fetch Metrics & Real-time Data
   const now = new Date();
