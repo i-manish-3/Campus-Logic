@@ -100,12 +100,18 @@ export default async function AdmissionPage({
     where: { tenantId: tenant.id }
   });
 
+  const feeGroups = (prisma as any).feeGroup ? await (prisma as any).feeGroup.findMany({
+    where: { tenantId: tenant.id },
+    orderBy: { name: 'asc' }
+  }) : [];
+
   return (
     <div style={{ padding: '1rem', width: '100%', margin: '0 auto' }}>
       <AdmissionForm
         tenantId={tenant.id}
         classes={classes}
         routes={routes}
+        feeGroups={feeGroups}
         allSessions={allSessions}
         currentSessionName={currentSession?.name || '2025-26'}
         nextAdmissionNumber={nextAdmissionNumber}

@@ -61,7 +61,7 @@ export default async function StudentProfilePage({
   const siblings = parent?.students || [];
   const fees = student.fees;
 
-  const tabs = ['Profile', 'Siblings', 'Fees', 'Documents'];
+  const tabs = ['Profile', siblings.length > 0 ? 'Siblings' : null, 'Fees', 'Documents'].filter(Boolean) as string[];
 
   const sidebarItemStyle = {
     display: 'flex',
@@ -75,8 +75,8 @@ export default async function StudentProfilePage({
     padding: '0.75rem 1.25rem',
     fontSize: '0.9rem',
     fontWeight: '600',
-    color: isActive ? '#f97316' : '#64748b',
-    borderBottom: isActive ? '3px solid #f97316' : '3px solid transparent',
+    color: isActive ? '#0d9488' : '#64748b',
+    borderBottom: isActive ? '3px solid #0d9488' : '3px solid transparent',
     cursor: 'pointer',
     whiteSpace: 'nowrap' as const,
     backgroundColor: isActive ? '#fff' : 'transparent',
@@ -126,7 +126,7 @@ export default async function StudentProfilePage({
         {/* RIGHT CONTENT AREA */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <div style={{ height: '5px', backgroundColor: '#f97316' }}></div>
+            <div style={{ height: '5px', backgroundColor: '#0d9488' }}></div>
             
             {/* TABS NAVIGATION */}
             <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem', borderBottom: '1px solid #f1f5f9', overflowX: 'auto', backgroundColor: '#fff' }}>
@@ -202,40 +202,92 @@ export default async function StudentProfilePage({
                       </div>
                       <div style={detailRowStyle}>
                         <div style={detailLabelStyle}>Father Phone</div>
-                        <div style={detailValueStyle}>{parent?.user.contactNumber || 'N/A'}</div>
+                        <div style={detailValueStyle}>{student.fatherContact || 'N/A'}</div>
                       </div>
-                      <div style={{ ...detailRowStyle, borderBottom: 'none' }}>
+                      <div style={detailRowStyle}>
+                        <div style={detailLabelStyle}>Father Email</div>
+                        <div style={detailValueStyle}>{student.fatherEmail || 'N/A'}</div>
+                      </div>
+                      <div style={detailRowStyle}>
                         <div style={detailLabelStyle}>Mother Name</div>
                         <div style={detailValueStyle}>{student.motherName || 'N/A'}</div>
+                      </div>
+                      <div style={{ ...detailRowStyle, borderBottom: 'none' }}>
+                        <div style={detailLabelStyle}>Mother Phone</div>
+                        <div style={detailValueStyle}>{student.motherContact || 'N/A'}</div>
                       </div>
                     </div>
                  </div>
                )}
 
-               {activeTab === 'Siblings' && (
-                 <div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', marginBottom: '1.5rem' }}>Student Siblings</h3>
+                {activeTab === 'Siblings' && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                      <span className="material-symbols-rounded" style={{ color: '#0d9488' }}>group</span>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Family & Siblings</h3>
+                    </div>
                     {siblings.length === 0 ? (
-                      <p style={{ color: '#64748b' }}>No siblings found registered in the school.</p>
+                      <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: '#f8fafc', borderRadius: '16px', border: '2px dashed #e2e8f0' }}>
+                        <span className="material-symbols-rounded" style={{ fontSize: '3rem', color: '#94a3b8', marginBottom: '1rem' }}>person_off</span>
+                        <p style={{ color: '#64748b', fontWeight: '600' }}>No other siblings found registered in this school.</p>
+                      </div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.5rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.25rem' }}>
                         {siblings.map((sib) => (
                           <Link key={sib.id} href={`/school/${tenantId}/students/${sib.id}`} style={{ textDecoration: 'none' }}>
-                            <div style={{ padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '1rem', transition: 'all 0.2s' }}>
-                               <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  <span className="material-symbols-rounded" style={{ color: '#64748b' }}>person</span>
+                            <div style={{ 
+                              padding: '1.25rem', 
+                              borderRadius: '16px', 
+                              backgroundColor: '#fff',
+                              border: '1px solid #e2e8f0', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '1.25rem', 
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                              position: 'relative',
+                              overflow: 'hidden'
+                            }}
+                            className="sibling-card-hover"
+                            >
+                               <div style={{ 
+                                 width: '60px', 
+                                 height: '60px', 
+                                 borderRadius: '14px', 
+                                 backgroundColor: '#f0fdf4', 
+                                 display: 'flex', 
+                                 alignItems: 'center', 
+                                 justifyContent: 'center',
+                                 border: '1px solid #dcfce7'
+                               }}>
+                                  <span className="material-symbols-rounded" style={{ color: '#16a34a', fontSize: '2rem' }}>person</span>
                                </div>
-                               <div>
-                                  <div style={{ fontWeight: '700', color: '#1e293b' }}>{sib.user.firstName} {sib.user.lastName}</div>
-                                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{sib.enrollments[0]?.class.name}</div>
+                               <div style={{ flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                                    <div style={{ fontWeight: '800', color: '#1e293b', fontSize: '1rem' }}>{sib.user.firstName} {sib.user.lastName}</div>
+                                    <span style={{ fontSize: '0.65rem', fontWeight: '800', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#64748b', textTransform: 'uppercase' }}>Sibling</span>
+                                  </div>
+                                  <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
+                                    {sib.enrollments[0]?.class.name} • {sib.admissionNumber}
+                                  </div>
                                </div>
+                               <div style={{ color: '#94a3b8' }}>
+                                 <span className="material-symbols-rounded">chevron_right</span>
+                               </div>
+                               <style>{`
+                                 .sibling-card-hover:hover {
+                                   transform: translateY(-4px);
+                                   border-color: #0d9488;
+                                   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                                 }
+                               `}</style>
                             </div>
                           </Link>
                         ))}
                       </div>
                     )}
-                 </div>
-               )}
+                  </div>
+                )}
 
                {activeTab === 'Fees' && (
                  <div>
@@ -289,7 +341,7 @@ export default async function StudentProfilePage({
                     <span className="material-symbols-rounded" style={{ fontSize: '4rem', color: '#94a3b8', marginBottom: '1rem' }}>folder_open</span>
                     <h3 style={{ color: '#1e293b', fontWeight: '800' }}>No Documents Uploaded</h3>
                     <p style={{ color: '#64748b', maxWidth: '300px', margin: '0.5rem auto 1.5rem' }}>Store admission forms, certificates, and ID proofs for the student.</p>
-                    <button style={{ backgroundColor: '#f97316', color: 'white', border: 'none', padding: '0.75rem 2rem', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}>Upload Document</button>
+                    <button style={{ backgroundColor: '#0d9488', color: 'white', border: 'none', padding: '0.75rem 2rem', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}>Upload Document</button>
                  </div>
                )}
             </div>

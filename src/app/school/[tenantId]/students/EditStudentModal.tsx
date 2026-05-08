@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { updateStudentProfile } from './actions';
 
-type TransportRoute = { id: string; name: string; feeAmount: number };
+type TransportRoute = { id: string; name: string; feeAmount: number; stopsJson?: string | null };
 
 export default function EditStudentModal({ 
   tenantId, 
@@ -84,20 +84,47 @@ export default function EditStudentModal({
 
               <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', marginTop: '0.5rem' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '0.9rem', fontWeight: '700', color: '#0f172a' }}>
-                  <span className="material-symbols-rounded" style={{ fontSize: '1.2rem', color: '#f97316' }}>directions_bus</span>
-                  Transport Allocation
+                   <span className="material-symbols-rounded" style={{ fontSize: '1.2rem', color: '#f97316' }}>directions_bus</span>
+                   Transport Allocation
                 </label>
-                <select 
-                  name="transportRouteId" 
-                  defaultValue={student.transportRouteId || ''} 
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: 'white' }}
-                >
-                  <option value="">No Transport / Unassigned</option>
-                  {routes.map(r => (
-                    <option key={r.id} value={r.id}>{r.name} (₹{r.feeAmount}/mo)</option>
-                  ))}
-                </select>
-                <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>Changing the route will automatically update future fee generations for this student.</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', color: '#64748b', fontWeight: '600' }}>Route</label>
+                    <select 
+                      name="transportRouteId" 
+                      defaultValue={student.transportRouteId || ''} 
+                      onChange={(e) => {
+                        const stopSelect = (e.target.form as HTMLFormElement).elements.namedItem('transportStop') as HTMLSelectElement;
+                        if (stopSelect) stopSelect.value = '';
+                      }}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: 'white' }}
+                    >
+                      <option value="">No Transport</option>
+                      {routes.map(r => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', color: '#64748b', fontWeight: '600' }}>Stop & Fare</label>
+                    <select 
+                      name="transportStop" 
+                      defaultValue={student.transportStop || ''}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: 'white' }}
+                    >
+                      <option value="">Select Stop</option>
+                      {routes.map(r => {
+                        try {
+                          const stops = JSON.parse(r.stopsJson || '[]');
+                          return stops.map((s: any, idx: number) => (
+                            <option key={`${r.id}-${idx}`} value={s.name}>{s.name} (₹{s.fare})</option>
+                          ));
+                        } catch (e) { return null; }
+                      })}
+                    </select>
+                  </div>
+                </div>
+                <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>Changing the route or stop will automatically update future fee generations.</p>
               </div>
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>

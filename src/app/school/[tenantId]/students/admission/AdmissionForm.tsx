@@ -17,6 +17,7 @@ interface AdmissionFormProps {
   allSessions: any[];
   currentSessionName: string;
   nextAdmissionNumber: string;
+  feeGroups: any[];
 }
 
 const RELIGIONS = ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Jain', 'Buddhist', 'Other'];
@@ -29,17 +30,16 @@ const STATES = [
   'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 
   'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'
 ];
-const FEE_GROUPS = ['General Group', 'Group A', 'Group B', 'Group C', 'RTE', 'Staff Ward'];
 
 export default function AdmissionForm({ 
-  tenantId, classes, routes, allSessions, currentSessionName, nextAdmissionNumber 
+  tenantId, classes, routes, allSessions, currentSessionName, nextAdmissionNumber, feeGroups 
 }: AdmissionFormProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; msg: string }>({ show: false, msg: '' });
   
-  const [formData, setFormData] = useState({
+  const initialFormState = {
     // Step 1
     academicYear: currentSessionName,
     registrationNumber: `REG-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
@@ -102,7 +102,6 @@ export default function AdmissionForm({
 
     // Step 3
     classId: '',
-    admissionSession: '2025-26',
     medium: 'English',
     religion: 'Hindu',
     category: 'General',
@@ -125,7 +124,8 @@ export default function AdmissionForm({
     // Step 4
     bankAccountNumber: '',
     ifscCode: '',
-    feeGroup: 'General Group',
+    feeGroup: '',
+    feeGroupId: '',
     feeIdConcession: '',
     monthlyFeeDiscount: '',
     transportDiscount: '',
@@ -139,7 +139,13 @@ export default function AdmissionForm({
     docIncomeCert: null,
     docEwsCert: null,
     docCasteCert: null,
-  });
+
+    // Sibling Support
+    isSibling: false,
+    existingParentId: null,
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
 
   // Load draft
   useEffect(() => {
@@ -167,10 +173,38 @@ export default function AdmissionForm({
     setTimeout(() => setToast({ show: false, msg: '' }), 3000);
   };
 
+  const validateStep = (step: number) => {
+    switch (step) {
+      case 1:
+        if (!formData.fullName) return "Full Name is required";
+        if (!formData.gender) return "Gender is required";
+        if (!formData.dob) return "Date of Birth is required";
+        if (!formData.admissionDate) return "Admission Date is required";
+        return null;
+      case 2:
+        if (!formData.motherName) return "Mother's Name is required";
+        if (!formData.motherContact) return "Mother's Contact is required";
+        if (!formData.fatherName) return "Father's Name is required";
+        if (!formData.fatherContact) return "Father's Contact is required";
+        return null;
+      case 3:
+        if (!formData.classId) return "Class Selection is required";
+        return null;
+      default:
+        return null;
+    }
+  };
+
   const handleNext = () => {
+    const error = validateStep(currentStep);
+    if (error) {
+      showToast(error);
+      return;
+    }
+
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
-      showToast(`Step ${currentStep} saved as draft`);
+      showToast('Progress saved successfully');
       window.scrollTo(0, 0);
     } else {
       handleSubmit();
@@ -186,7 +220,7 @@ export default function AdmissionForm({
 
   const handleSaveAll = () => {
     localStorage.setItem(`admission_draft_${tenantId}`, JSON.stringify(formData));
-    showToast('All progress saved to local draft');
+    showToast('All data saved to drafts');
   };
 
   const handleSubmit = async () => {
@@ -195,6 +229,8 @@ export default function AdmissionForm({
       const result = await admitStudent(tenantId, formData);
       if (result.success) {
         localStorage.removeItem(`admission_draft_${tenantId}`);
+        // Clear local state to prevent auto-save from re-storing it
+        setFormData(initialFormState); 
         showToast('Student admitted successfully!');
         setTimeout(() => router.push(`/school/${tenantId}/students`), 2000);
       } else {
@@ -213,7 +249,7 @@ export default function AdmissionForm({
       case 1: return <Step1Personal formData={formData} setFormData={setFormData} allSessions={allSessions} bloodGroups={BLOOD_GROUPS} />;
       case 2: return <Step2Contact formData={formData} setFormData={setFormData} states={STATES} />;
       case 3: return <Step3General formData={formData} setFormData={setFormData} classes={classes} allSessions={allSessions} routes={routes} religions={RELIGIONS} categories={CATEGORIES} mediums={MEDIUMS} />;
-      case 4: return <Step4Accounts formData={formData} setFormData={setFormData} feeGroups={FEE_GROUPS} />;
+      case 4: return <Step4Accounts formData={formData} setFormData={setFormData} feeGroups={feeGroups} />;
       case 5: return <Step5Documents formData={formData} setFormData={setFormData} />;
       default: return null;
     }
@@ -284,9 +320,32 @@ export default function AdmissionForm({
       </div>
 
       {toast.show && (
-        <div className="toast show" style={{ position: 'fixed', bottom: '24px', right: '24px', background: 'var(--gray-800)', color: '#fff', padding: '10px 16px', borderRadius: 'var(--radius)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: 'var(--shadow-md)', zIndex: 1000, opacity: 1, transform: 'translateY(0)', transition: 'all 0.3s' }}>
-          <i className="ti ti-circle-check" style={{ color: '#10b981' }}></i> 
+        <div style={{ 
+          position: 'fixed', 
+          top: '30px', 
+          left: '50%', 
+          transform: 'translateX(-50%)', 
+          backgroundColor: '#0d9488', 
+          color: 'white', 
+          padding: '12px 24px', 
+          borderRadius: '50px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '10px', 
+          boxShadow: '0 10px 25px -5px rgba(13, 148, 136, 0.3)', 
+          zIndex: 9999, 
+          fontWeight: '700',
+          fontSize: '0.9rem',
+          animation: 'slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}>
+          <i className="ti ti-circle-check" style={{ fontSize: '1.2rem' }}></i> 
           <span>{toast.msg}</span>
+          <style>{`
+            @keyframes slideDown {
+              from { transform: translate(-50%, -100%); opacity: 0; }
+              to { transform: translate(-50%, 0); opacity: 1; }
+            }
+          `}</style>
         </div>
       )}
     </div>

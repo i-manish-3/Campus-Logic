@@ -1,7 +1,6 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import StudentModals from './StudentModals';
 import EditStudentModal from './EditStudentModal';
 import ToggleStatusButton from './ToggleStatusButton';
 
@@ -31,159 +30,182 @@ export default async function StudentsPage({ params }: { params: Promise<{ tenan
   const routes = tenant ? await prisma.transportRoute.findMany({ where: { tenantId: actualTenantId } }) : [];
 
   return (
-    <main style={{ flex: 1, padding: '2.5rem' }}>
+    <main style={{ flex: 1, padding: '1.5rem 2.5rem', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
       <header style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '3rem',
-        paddingBottom: '1.5rem',
+        marginBottom: '2rem',
+        padding: '1rem 0',
         borderBottom: '1px solid #e2e8f0'
       }}>
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>Student Directory</h1>
-          <p style={{ margin: '0.5rem 0 0 0', color: '#64748b', fontSize: '0.95rem' }}>Manage student records, enrollments, and financial status.</p>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <i className="ti ti-users" style={{ color: '#0d9488', fontSize: '1.4rem' }}></i>
+            Student Directory
+          </h1>
+          <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.85rem', fontWeight: '500' }}>Manage student records and academic status.</p>
         </div>
-        <StudentModals
-          tenantId={actualTenantId}
-          sessions={sessions}
-          classes={classes}
-          sections={sections}
-          transportRoutes={routes}
-        />
+        <Link
+          href={`/school/${tenantId}/students/admission`}
+          style={{
+            backgroundColor: '#0d9488',
+            color: 'white',
+            border: 'none',
+            padding: '0.65rem 1.25rem',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            fontWeight: '700',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontSize: '0.85rem',
+            textDecoration: 'none',
+            boxShadow: '0 4px 12px rgba(13, 148, 136, 0.2)',
+            transition: 'transform 0.1s'
+          }}
+        >
+          <i className="ti ti-user-plus" style={{ fontSize: '1.1rem' }}></i>
+          Admit Student
+        </Link>
       </header>
 
       <div style={{
         backgroundColor: 'white',
-        borderRadius: '20px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        borderRadius: '16px',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
         overflow: 'hidden',
-        border: '1px solid #f1f5f9'
+        border: '1px solid #e2e8f0',
+        maxWidth: '1200px'
       }}>
         {students.length === 0 ? (
-          <div style={{ padding: '5rem 2rem', textAlign: 'center', color: '#94a3b8' }}>
-            <span className="material-symbols-rounded" style={{ fontSize: '4rem', marginBottom: '1rem', display: 'block' }}>person_off</span>
-            <p style={{ fontSize: '1.1rem' }}>No students admitted yet.</p>
-            <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Start by clicking the "Admit Student" button above.</p>
+          <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+            <div style={{ width: '60px', height: '60px', backgroundColor: '#f0fdfa', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+              <i className="ti ti-user-off" style={{ fontSize: '1.8rem', color: '#0d9488' }}></i>
+            </div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#1e293b' }}>No students admitted yet</h3>
+            <p style={{ color: '#64748b', marginTop: '0.25rem', fontSize: '0.85rem' }}>Start by admitting your first student.</p>
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                <th style={{ padding: '1.25rem 1.5rem', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Student</th>
-                <th style={{ padding: '1.25rem 1.5rem', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Admission No</th>
-                <th style={{ padding: '1.25rem 1.5rem', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Class/Section</th>
-                <th style={{ padding: '1.25rem 1.5rem', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Financial Status</th>
-                <th style={{ padding: '1.25rem 1.5rem', color: '#475569', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map(student => {
-                const balance = student.fees.reduce((s, f) => s + (f.amountDue - f.amountPaid), 0);
-                const firstNameInitial = student.user.firstName ? student.user.firstName[0] : '?';
-                const lastNameInitial = student.user.lastName ? student.user.lastName[0] : '';
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: '700', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Student</th>
+                  <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: '700', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ID / Admission</th>
+                  <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: '700', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Class</th>
+                  <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: '700', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                  <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: '700', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map(student => {
+                  const balance = student.fees.reduce((s, f) => s + (f.amountDue - f.amountPaid), 0);
+                  const initials = `${student.user.firstName?.[0] || ''}${student.user.lastName?.[0] || ''}`;
 
-                return (
-                  <tr key={student.id} style={{
-                    borderBottom: '1px solid #f1f5f9',
-                    opacity: student.isActive ? 1 : 0.6,
-                    backgroundColor: student.isActive ? 'transparent' : '#f8fafc'
-                  }}>
-                    <td style={{ padding: '1.25rem 1.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '10px',
-                          backgroundColor: student.isActive ? '#eef2ff' : '#f1f5f9',
-                          color: student.isActive ? '#4f46e5' : '#94a3b8',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: '700'
-                        }}>
-                          {firstNameInitial}{lastNameInitial}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: '700', color: student.isActive ? '#1e293b' : '#64748b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            {student.user.firstName} {student.user.lastName}
-                            {!student.isActive && (
-                              <span style={{ fontSize: '0.65rem', backgroundColor: '#94a3b8', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '4px', textTransform: 'uppercase' }}>Disabled</span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{student.user.email || 'No email'}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '1.25rem 1.5rem', color: '#334155', fontWeight: '600' }}>
-                      <span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem' }}>
-                        {student.admissionNumber}
-                      </span>
-                    </td>
-                    <td style={{ padding: '1.25rem 1.5rem' }}>
-                      {student.enrollments[0] ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontWeight: '600', color: '#1e293b' }}>{student.enrollments[0].class.name}</span>
-                          <span style={{ color: '#94a3b8' }}>•</span>
-                          <span style={{ color: '#64748b' }}>{student.enrollments[0].section?.name || 'A'}</span>
-                        </div>
-                      ) : (
-                        <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.85rem' }}>Not Enrolled</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '1.25rem 1.5rem' }}>
-                      <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.4rem 0.75rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.75rem',
-                        fontWeight: '700',
-                        backgroundColor: balance > 0 ? '#fef2f2' : '#f0fdf4',
-                        color: balance > 0 ? '#dc2626' : '#16a34a',
-                        border: balance > 0 ? '1px solid #fee2e2' : '1px solid #dcfce7'
-                      }}>
-                        <span className="material-symbols-rounded" style={{ fontSize: '1rem' }}>{balance > 0 ? 'account_balance_wallet' : 'check_circle'}</span>
-                        {balance > 0 ? `₹${balance.toLocaleString()} Due` : 'Fully Paid'}
-                      </div>
-                    </td>
-                    <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                        <Link 
-                          href={`/school/${tenantId}/students/${student.id}`}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                  return (
+                    <tr key={student.id} style={{
+                      borderBottom: '1px solid #f1f5f9',
+                      transition: 'background-color 0.2s',
+                      opacity: student.isActive ? 1 : 0.7
+                    }}>
+                      <td style={{ padding: '0.75rem 1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{
                             width: '32px',
                             height: '32px',
                             borderRadius: '8px',
-                            backgroundColor: '#f1f5f9',
-                            color: '#475569',
-                            textDecoration: 'none'
-                          }}
-                          title="View Profile"
-                        >
-                          <span className="material-symbols-rounded" style={{ fontSize: '1.25rem' }}>visibility</span>
-                        </Link>
-                        <EditStudentModal
-                          tenantId={actualTenantId}
-                          student={student}
-                          routes={routes.map(r => ({ id: r.id, name: r.name, feeAmount: r.feeAmount }))}
-                        />
-                        <ToggleStatusButton
-                          tenantId={actualTenantId}
-                          studentId={student.id}
-                          isActive={student.isActive}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                            backgroundColor: student.isActive ? '#f0fdfa' : '#f1f5f9',
+                            color: student.isActive ? '#0d9488' : '#64748b',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: '800',
+                            fontSize: '0.75rem',
+                            border: `1px solid ${student.isActive ? '#ccfbf1' : '#e2e8f0'}`
+                          }}>
+                            {initials}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: '700', color: student.isActive ? '#1e293b' : '#64748b', fontSize: '0.85rem' }}>
+                              {student.user.firstName} {student.user.lastName}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                              {student.user.email || 'No email'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ color: '#0d9488', fontWeight: '700', fontSize: '0.8rem' }}>#{student.admissionNumber}</span>
+                          <span style={{ color: '#94a3b8', fontSize: '0.65rem' }}>{student.registrationNumber}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem' }}>
+                        {student.enrollments[0] ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ fontWeight: '600', color: '#334155', fontSize: '0.8rem' }}>{student.enrollments[0].class.name}</span>
+                            <span style={{ color: '#0d9488', fontWeight: '800', fontSize: '0.8rem' }}>{student.enrollments[0].section?.name || 'A'}</span>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>N/A</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem' }}>
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '6px',
+                          fontSize: '0.65rem',
+                          fontWeight: '800',
+                          backgroundColor: balance > 0 ? '#fff1f2' : '#f0fdf4',
+                          color: balance > 0 ? '#be123c' : '#15803d',
+                          border: `1px solid ${balance > 0 ? '#fecdd3' : '#bbf7d0'}`
+                        }}>
+                          {balance > 0 ? `₹${balance}` : 'Paid'}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                          <Link 
+                            href={`/school/${tenantId}/students/${student.id}`}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              backgroundColor: '#f8fafc',
+                              color: '#0d9488',
+                              border: '1px solid #e2e8f0',
+                              textDecoration: 'none'
+                            }}
+                            title="View"
+                          >
+                            <i className="ti ti-eye" style={{ fontSize: '1rem' }}></i>
+                          </Link>
+                          <EditStudentModal
+                            tenantId={actualTenantId}
+                            student={student}
+                            routes={routes.map(r => ({ id: r.id, name: r.name, feeAmount: r.feeAmount }))}
+                          />
+                          <ToggleStatusButton
+                            tenantId={actualTenantId}
+                            studentId={student.id}
+                            isActive={student.isActive}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </main>

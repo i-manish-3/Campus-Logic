@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createFeeHead, createFeeStructure } from './actions';
+import Link from 'next/link';
 
 type FeeHead = { id: string; name: string };
 type AcademicSession = { id: string; name: string; isCurrent: boolean };
@@ -21,6 +22,8 @@ export default function FeeModals({
   const [activeModal, setActiveModal] = useState<'NONE' | 'FEE_HEAD' | 'FEE_STRUCTURE'>('NONE');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [frequency, setFrequency] = useState('MONTHLY');
+  const [baseAmount, setBaseAmount] = useState('0');
 
   async function handleCreateFeeHead(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,115 +55,81 @@ export default function FeeModals({
 
   return (
     <>
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <button onClick={() => setActiveModal('FEE_HEAD')} style={{ backgroundColor: '#4f46e5', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-          + Create Fee Head
+      <div className="header-actions">
+        <button onClick={() => setActiveModal('FEE_HEAD')} className="btn btn-outline">
+          <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>add_circle</span>
+          Fee Head
         </button>
-        <button onClick={() => setActiveModal('FEE_STRUCTURE')} style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-          + Create Fee Structure
-        </button>
+        <Link href={`/school/${tenantId}/fees/create`} className="btn btn-teal">
+          <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>payments</span>
+          Create Fee Structure
+        </Link>
       </div>
 
       {activeModal === 'FEE_HEAD' && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, padding: '1rem' }}>
-          <div className="modal-content" style={{ backgroundColor: 'white', padding: '2.5rem', borderRadius: '24px', width: '100%', maxWidth: '450px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', position: 'relative' }}>
-            <button 
-              onClick={() => setActiveModal('NONE')}
-              style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: '#f1f5f9', border: 'none', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}
-            >
-              <span className="material-symbols-rounded" style={{ fontSize: '1.25rem' }}>close</span>
-            </button>
-            <h2 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>Create Fee Head</h2>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '2rem' }}>Define a new category for fee collection.</p>
+        <div style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          backgroundColor: 'rgba(15, 23, 42, 0.4)', 
+          backdropFilter: 'blur(4px)', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          zIndex: 1000, 
+          padding: '1rem' 
+        }}>
+          <div className="form-card" style={{ 
+            width: '100%', 
+            maxWidth: '450px', 
+            position: 'relative',
+            animation: 'modalSlideIn 0.3s ease-out'
+          }}>
+            <style jsx>{`
+              @keyframes modalSlideIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+              }
+            `}</style>
             
-            <form onSubmit={handleCreateFeeHead} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--gray-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Name (e.g. Tuition Fee)</label>
-                <input name="name" required style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '800', color: 'var(--gray-800)' }}>Create Fee Head</h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--gray-500)' }}>Define a new head for financial collection</p>
               </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Description (Optional)</label>
-                <input name="description" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input type="checkbox" name="isRefundable" id="isRefundable" />
-                <label htmlFor="isRefundable" style={{ fontSize: '0.9rem' }}>Is Refundable?</label>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => setActiveModal('NONE')} style={{ padding: '0.5rem 1rem', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" disabled={loading} style={{ backgroundColor: '#4f46e5', color: 'white', padding: '0.5rem 1rem', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>{loading ? 'Saving...' : 'Save Fee Head'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              <button onClick={() => setActiveModal('NONE')} className="btn-icon">
+                <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>close</span>
+              </button>
+            </div>
 
-      {activeModal === 'FEE_STRUCTURE' && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, padding: '1rem' }}>
-          <div className="modal-content" style={{ backgroundColor: 'white', padding: '2.5rem', borderRadius: '24px', width: '100%', maxWidth: '550px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', position: 'relative' }}>
-            <button 
-              onClick={() => setActiveModal('NONE')}
-              style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: '#f1f5f9', border: 'none', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}
-            >
-              <span className="material-symbols-rounded" style={{ fontSize: '1.25rem' }}>close</span>
-            </button>
-            <h2 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>Create Fee Structure</h2>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '2rem' }}>Assign fees to specific classes and set payment frequency.</p>
-            
-            <form onSubmit={handleCreateFeeStructure} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Fee Head</label>
-                <select name="feeHeadId" required style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}>
-                  <option value="">Select Fee Head</option>
-                  {feeHeads.map(fh => <option key={fh.id} value={fh.id}>{fh.name}</option>)}
-                </select>
-                {feeHeads.length === 0 && <p style={{ color: 'red', fontSize: '0.8rem', marginTop: '0.2rem' }}>You must create a Fee Head first.</p>}
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Academic Session</label>
-                <select name="sessionId" required style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}>
-                  <option value="">Select Session</option>
-                  {sessions.map(s => <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? '(Current)' : ''}</option>)}
-                </select>
-                {sessions.length === 0 && <p style={{ color: 'red', fontSize: '0.8rem', marginTop: '0.2rem' }}>You must create an Academic Session first (in Academic Setup).</p>}
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Class</label>
-                <select name="classId" required style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}>
-                  <option value="all">All Classes</option>
-                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Amount (₹)</label>
-                  <input type="number" name="amount" required min="1" step="0.01" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+            <form onSubmit={handleCreateFeeHead} style={{ padding: '1.5rem' }}>
+              {error && (
+                <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+                  {error}
                 </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Frequency</label>
-                  <select name="frequency" required style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}>
-                    <option value="MONTHLY">Monthly</option>
-                    <option value="QUARTERLY">Quarterly</option>
-                    <option value="HALF_YEARLY">Half Yearly</option>
-                    <option value="YEARLY">Yearly</option>
-                    <option value="ONE_TIME">One Time</option>
-                  </select>
+              )}
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '700', color: 'var(--gray-700)' }}>Fee Head Name</label>
+                  <input name="name" required placeholder="e.g. Tuition Fee" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--gray-200)', fontSize: '14px' }} />
                 </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#fff7ed', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ffedd5' }}>
-                <input type="checkbox" name="isAdmissionFee" id="isAdmissionFee" />
-                <label htmlFor="isAdmissionFee" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#9a3412' }}>
-                  Is Admission Fee? (Added to New Students Only)
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '700', color: 'var(--gray-700)' }}>Description</label>
+                  <input name="description" placeholder="Optional description" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--gray-200)', fontSize: '14px' }} />
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '12px', background: 'var(--gray-50)', borderRadius: '8px' }}>
+                  <input type="checkbox" name="isRefundable" style={{ width: '18px', height: '18px' }} />
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--gray-700)' }}>Is Refundable?</span>
                 </label>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => setActiveModal('NONE')} style={{ padding: '0.5rem 1rem', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" disabled={loading || feeHeads.length === 0 || sessions.length === 0} style={{ backgroundColor: '#10b981', color: 'white', padding: '0.5rem 1rem', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>{loading ? 'Saving...' : 'Save Structure'}</button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '2rem', borderTop: '1px solid var(--gray-100)', paddingTop: '1.5rem' }}>
+                <button type="button" onClick={() => setActiveModal('NONE')} className="btn btn-outline" style={{ minWidth: '100px' }}>Cancel</button>
+                <button type="submit" disabled={loading} className="btn btn-teal" style={{ minWidth: '140px' }}>
+                  {loading ? (
+                    <><span className="material-symbols-rounded" style={{ fontSize: '18px', animation: 'spin 1s linear infinite' }}>sync</span> Saving...</>
+                  ) : 'Create Head'}
+                </button>
               </div>
             </form>
           </div>

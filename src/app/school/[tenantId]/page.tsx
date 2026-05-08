@@ -31,7 +31,7 @@ export default async function TenantDashboard({ params }: { params: Promise<{ te
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const [studentsCount, teachersCount, feeStats, examsCount, recentPayments, allStudents] = await Promise.all([
+  const [studentsCount, teachersCount, feeStats, examsCount, recentPayments, allStudents, recentAdmissions, recentRoutes, recentDrivers] = await Promise.all([
     prisma.studentProfile.count({ where: { tenantId: tid, isActive: true } }),
     prisma.user.count({ 
       where: { 
@@ -50,14 +50,70 @@ export default async function TenantDashboard({ params }: { params: Promise<{ te
     prisma.feePayment.findMany({
       where: { tenantId: tid },
       orderBy: { paymentDate: 'desc' },
-      take: 6,
+      take: 5,
       include: { studentFee: { include: { student: { include: { user: true } } } } }
     }),
     prisma.studentProfile.findMany({
       where: { tenantId: tid, isActive: true },
       include: { user: true, enrollments: { include: { class: true } } }
+    }),
+    prisma.studentProfile.findMany({
+      where: { tenantId: tid },
+      orderBy: { admissionDate: 'desc' },
+      take: 5,
+      include: { user: true }
+    }),
+    prisma.transportRoute.findMany({
+      where: { tenantId: tid },
+      orderBy: { updatedAt: 'desc' },
+      take: 5
+    }),
+    prisma.transportDriver.findMany({
+      where: { tenantId: tid },
+      orderBy: { createdAt: 'desc' },
+      take: 5
     })
   ]);
+
+  // Merge and Sort Activity Log
+  const activities = [
+    ...recentPayments.map(p => ({
+      id: p.id,
+      type: 'PAYMENT',
+      time: p.paymentDate,
+      title: `Fee Collected: ₹${p.amount.toLocaleString()}`,
+      subtitle: `${p.studentFee.student.user.firstName} ${p.studentFee.student.user.lastName} • ${p.paymentMethod}`,
+      icon: 'payments',
+      color: '#3b82f6'
+    })),
+    ...recentAdmissions.map(s => ({
+      id: s.id,
+      type: 'ADMISSION',
+      time: s.admissionDate,
+      title: `New Admission: ${s.user.firstName} ${s.user.lastName}`,
+      subtitle: `Adm No: ${s.admissionNumber}`,
+      icon: 'person_add',
+      color: '#10b981'
+    })),
+    ...recentRoutes.map(r => ({
+      id: r.id,
+      type: 'TRANSPORT',
+      time: r.updatedAt,
+      title: `Route Updated: ${r.name}`,
+      subtitle: r.vehicleNumber || 'No vehicle assigned',
+      icon: 'directions_bus',
+      color: '#f59e0b'
+    })),
+    ...recentDrivers.map(d => ({
+      id: d.id,
+      type: 'DRIVER',
+      time: d.createdAt,
+      title: `Driver Onboarded: ${d.name}`,
+      subtitle: d.phone || 'No phone provided',
+      icon: 'badge',
+      color: '#6366f1'
+    }))
+  ].sort((a, b) => b.time.getTime() - a.time.getTime()).slice(0, 8);
 
   // Filter Todays Birthdays
   const todaysBirthdays = allStudents.filter(s => {
@@ -142,34 +198,38 @@ export default async function TenantDashboard({ params }: { params: Promise<{ te
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {recentPayments.length === 0 ? (
+            {activities.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', fontSize: '0.75rem' }}>No recent activities.</div>
-            ) : recentPayments.map((p, i) => (
-              <div key={p.id} style={{ display: 'flex', gap: '0.75rem', position: 'relative' }}>
-                {i !== recentPayments.length - 1 && <div style={{ position: 'absolute', left: '2px', top: '16px', bottom: '-16px', width: '2px', backgroundColor: '#f8fafc' }}></div>}
-                <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#3b82f6', marginTop: '5px', zIndex: 1 }}></div>
-                <div style={{ flex: 1 }}>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
-                      <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#cbd5e1' }}>
-                        {new Date(p.paymentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            ) : activities.map((act, i) => (
+              <div key={act.id} style={{ display: 'flex', gap: '0.75rem', position: 'relative' }}>
+                {i !== activities.length - 1 && <div style={{ position: 'absolute', left: '15px', top: '32px', bottom: '-20px', width: '2px', backgroundColor: '#f1f5f9' }}></div>}
+                <div style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '10px', 
+                  backgroundColor: `${act.color}15`, 
+                  color: act.color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  zIndex: 1
+                }}>
+                  <span className="material-symbols-rounded" style={{ fontSize: '1.1rem' }}>{act.icon}</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.15rem' }}>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#1e293b', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {act.title}
+                      </p>
+                      <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#94a3b8', flexShrink: 0 }}>
+                        {act.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                    </div>
-                   <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569', fontWeight: '600', lineHeight: 1.4 }}>
-                    Fee Collected: {p.studentFee.student.user.firstName} {p.studentFee.student.user.lastName}
-                   </p>
-                   <div style={{ fontSize: '0.7rem', color: '#3b82f6', fontWeight: '800', marginTop: '0.15rem' }}>₹{p.amount.toLocaleString()} • {p.paymentMethod}</div>
+                   <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '500' }}>{act.subtitle}</div>
                 </div>
               </div>
             ))}
-            {recentPayments.length < 3 && (
-               <div style={{ display: 'flex', gap: '0.75rem', position: 'relative', opacity: 0.6 }}>
-                  <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10b981', marginTop: '5px', zIndex: 1 }}></div>
-                  <div style={{ flex: 1 }}>
-                    <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#cbd5e1' }}>System Status</span>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569', fontWeight: '600' }}>Academic session 2024-25 is online.</p>
-                  </div>
-               </div>
-            )}
           </div>
         </div>
 

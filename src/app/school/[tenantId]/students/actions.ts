@@ -26,29 +26,56 @@ export async function searchParents(tenantIdOrDomain: string, query: string) {
     });
     console.log("GLOBAL_SEARCH_DIAGNOSTIC:", { query, matchesFound: globalCheck });
 
-    const totalParents = await prisma.parentProfile.count({ where: { tenantId } });
-    console.log("TENANT_SEARCH_DIAGNOSTIC:", { tenantId, query, totalParentsInTenant: totalParents });
+    console.log("SEARCHING_PARENTS_AGGRESSIVE:", { tenantId, query });
+
+    // Clean query to last 10 digits for better matching in India
+    const cleanQuery = query.replace(/[^0-9]/g, '').slice(-10);
 
     const parents = await prisma.parentProfile.findMany({
       where: {
         tenantId,
-        user: {
-          OR: [
-            { firstName: { contains: query } },
-            { lastName: { contains: query } },
-            { email: { contains: query } },
-            { contactNumber: { contains: query } }
-          ]
-        }
+        OR: [
+          {
+            user: {
+              OR: [
+                { firstName: { contains: query } },
+                { lastName: { contains: query } },
+                { email: { contains: query } }
+              ]
+            }
+          },
+          {
+            students: {
+              some: {
+                OR: [
+                  { admissionNumber: { contains: query } },
+                  { registrationNumber: { contains: query } },
+                  { fatherContact: { contains: cleanQuery || query } },
+                  { motherContact: { contains: cleanQuery || query } },
+                  { fatherContact: { contains: query } },
+                  { motherContact: { contains: query } },
+                  { fatherName: { contains: query } },
+                  { motherName: { contains: query } },
+                  { user: { firstName: { contains: query } } },
+                  { user: { lastName: { contains: query } } }
+                ]
+              }
+            }
+          }
+        ]
       },
       include: {
         user: true,
         students: {
-          select: { user: { select: { firstName: true, lastName: true } } }
+          include: {
+            user: true
+          }
         }
       },
       take: 5
     });
+
+    console.log("SEARCH_RESULTS_FOUND:", parents.length);
 
     if (parents.length === 0) {
       // Find where 'hello' actually is
@@ -74,13 +101,48 @@ export async function searchParents(tenantIdOrDomain: string, query: string) {
       }
     }
 
-    return parents.map(p => ({
-      id: p.id,
-      name: `${p.user.firstName} ${p.user.lastName}`,
-      email: p.user.email,
-      phone: p.user.contactNumber,
-      wards: p.students.map(s => s.user.firstName).join(', ')
-    }));
+    return parents.map(p => {
+      const s = p.students[0];
+      return {
+        id: p.id,
+        name: `${p.user.firstName} ${p.user.lastName}`,
+        email: p.user.email,
+        phone: s?.fatherContact || 'N/A',
+        wards: p.students.map(st => st.user.firstName).join(', '),
+        // Extra info for auto-fill
+        fatherName: `${p.user.firstName} ${p.user.lastName}`,
+        fatherEmail: p.user.email,
+        fatherContact: s?.fatherContact,
+        fatherOccupation: s?.fatherOccupation,
+        fatherQualification: s?.fatherQualification,
+        fatherAadhaar: s?.fatherAadhaar,
+        fatherIncome: s?.fatherIncome,
+        motherName: s?.motherName,
+        motherContact: s?.motherContact,
+        motherOccupation: s?.motherOccupation,
+        motherQualification: s?.motherQualification,
+        motherAadhaar: s?.motherAadhaar,
+        motherIncome: s?.motherIncome,
+        permStreet: s?.permStreet,
+        permLandmark: s?.permLandmark,
+        permArea: s?.permArea,
+        permCity: s?.permCity,
+        permState: s?.permState,
+        permCountry: s?.permCountry,
+        permPincode: s?.permPincode,
+        village: s?.village,
+        post: s?.post,
+        policeStation: s?.policeStation,
+        wardNumber: s?.wardNumber,
+        localStreet: s?.localStreet,
+        localLandmark: s?.localLandmark,
+        localArea: s?.localArea,
+        localCity: s?.localCity,
+        localState: s?.localState,
+        localCountry: s?.localCountry,
+        localPincode: s?.localPincode,
+      };
+    });
   } catch (error) {
     console.error(error);
     return [];
@@ -133,9 +195,16 @@ export async function getNextAdmissionNumber(tenantId: string) {
 import { getSession } from '@/lib/session';
 import { ensurePermission } from '@/lib/permissions';
 
-export async function admitStudent(tenantId: string, data: any) {
+export async function admitStudent(tenantIdOrDomain: string, data: any) {
   const session = await getSession();
   if (!session) return { error: 'Authentication required' };
+
+  // Resolve actual tenant ID
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
   
   try {
     await ensurePermission(session.userId, 'manage_admission');
@@ -150,13 +219,19 @@ export async function admitStudent(tenantId: string, data: any) {
       permStreet, permLandmark, permArea, permCity, permState, permCountry, permPincode,
       localStreet, localLandmark, localArea, localCity, localState, localCountry, localPincode,
       village, post, policeStation, wardNumber,
-      classId, admissionSession, medium, religion, category, caste, areaType, medicalHistory,
+      classId: rawClassId, medium, religion, category, caste, areaType, medicalHistory,
       prevSchoolName, affiliatedTo, prevSchoolAddress, lastClassAttended, prevResult, tcNumber, tcDate,
-      transportRouteId, transportStop, hostelName, roomNumber, bedNumber,
-      bankAccountNumber, ifscCode, feeGroup, feeIdConcession, monthlyFeeDiscount, transportDiscount,
+      transportRouteId: rawTransportRouteId, transportStop, hostelName, roomNumber, bedNumber,
+      bankAccountNumber, ifscCode, feeGroup, feeGroupId: rawFeeGroupId, feeIdConcession, monthlyFeeDiscount, transportDiscount,
       docBirthCertificate, docTransferCertificate, docStudentPhoto, docFatherPhoto, docMotherPhoto,
       docIncomeCert, docEwsCert, docCasteCert
     } = data;
+
+    // Normalize IDs to handle empty strings from form selects
+    const classId = rawClassId || null;
+    const transportRouteId = rawTransportRouteId || null;
+    const feeGroupId = rawFeeGroupId || null;
+    const existingParentId = data.existingParentId || null;
 
     // Perform everything in a transaction for safety
     const studentProfile = await prisma.$transaction(async (tx) => {
@@ -171,7 +246,7 @@ export async function admitStudent(tenantId: string, data: any) {
             name: academicYear,
             startDate: new Date(new Date().getFullYear(), 3, 1),
             endDate: new Date(new Date().getFullYear() + 1, 2, 31),
-            isActive: true,
+            isCurrent: true,
             tenantId
           }
         });
@@ -187,46 +262,78 @@ export async function admitStudent(tenantId: string, data: any) {
       if (!parentRole) parentRole = await tx.role.create({ data: { name: 'PARENT', isSystem: true, tenantId } });
 
       // 3. Handle Parent
-      let parentProfileId: string | undefined;
-      if (fatherEmail || fatherContact) {
-        const parentEmail = fatherEmail || `${fatherContact}@mda.com`;
-        let parentUser = await tx.user.findFirst({
-          where: { email: parentEmail, tenantId }
-        });
+      let parentProfileId: string | undefined = existingParentId;
 
-        if (!parentUser) {
+      if (!parentProfileId && (fatherContact || motherContact || fatherEmail || motherEmail)) {
+        // A. Try to find by email first (exact match)
+        const parentEmail = fatherEmail || motherEmail || (fatherContact ? `${fatherContact}@mda.com` : (motherContact ? `${motherContact}@mda.com` : null));
+        
+        let parentUser = null;
+        if (parentEmail) {
+          parentUser = await tx.user.findFirst({
+            where: { email: parentEmail, tenantId }
+          });
+        }
+
+        // B. If no email match, try searching by phone numbers in existing student records
+        if (!parentUser && (fatherContact || motherContact)) {
+          const cleanFather = fatherContact?.replace(/[^0-9]/g, '').slice(-10);
+          const cleanMother = motherContact?.replace(/[^0-9]/g, '').slice(-10);
+
+          const existingWard = await tx.studentProfile.findFirst({
+            where: {
+              tenantId,
+              OR: [
+                ...(cleanFather ? [{ fatherContact: { contains: cleanFather } }] : []),
+                ...(cleanMother ? [{ motherContact: { contains: cleanMother } }] : []),
+                ...(cleanFather ? [{ motherContact: { contains: cleanFather } }] : []),
+                ...(cleanMother ? [{ fatherContact: { contains: cleanMother } }] : []),
+              ],
+              parentProfileId: { not: null }
+            },
+            select: { parentProfileId: true }
+          });
+
+          if (existingWard) {
+            parentProfileId = existingWard.parentProfileId || undefined;
+          }
+        } else if (parentUser) {
+          const parentProfile = await tx.parentProfile.findUnique({
+            where: { userId: parentUser.id }
+          });
+          parentProfileId = parentProfile?.id;
+        }
+
+        // C. Create new parent if still not found
+        if (!parentProfileId) {
+          const finalParentEmail = parentEmail || `parent_${Math.random().toString(36).substr(2, 6)}@mda.com`;
           const passwordHash = crypto.createHash('sha256').update('parent123').digest('hex');
-          parentUser = await tx.user.create({
+          
+          const newParentUser = await tx.user.create({
             data: {
-              email: parentEmail,
-              firstName: fatherName?.split(' ')[0] || 'Father',
-              lastName: fatherName?.split(' ').slice(1).join(' ') || '',
+              email: finalParentEmail,
+              firstName: fatherName?.split(' ')[0] || motherName?.split(' ')[0] || 'Parent',
+              lastName: fatherName?.split(' ').slice(1).join(' ') || motherName?.split(' ').slice(1).join(' ') || '',
               passwordHash,
               role: { connect: { id: parentRole.id } },
               tenant: { connect: { id: tenantId } }
             }
           });
-        }
 
-        let parentProfile = await tx.parentProfile.findUnique({
-          where: { userId: parentUser.id }
-        });
-
-        if (!parentProfile) {
-          parentProfile = await tx.parentProfile.create({
+          const newParentProfile = await tx.parentProfile.create({
             data: {
-              userId: parentUser.id,
+              userId: newParentUser.id,
               tenantId
             }
           });
+          parentProfileId = newParentProfile.id;
         }
-        parentProfileId = parentProfile.id;
       }
 
-      // 4. Create Student User
-      const studentUsername = username || `std${registrationNumber?.replace(/[^a-zA-Z0-9]/g, '')}`;
+      // 4. Create Student User (Automatic Background Account)
+      const studentUsername = username || admissionNumber || `std${registrationNumber?.replace(/[^a-zA-Z0-9]/g, '')}`;
       const studentEmail = `${studentUsername}@mda.com`;
-      const passwordHash = crypto.createHash('sha256').update(password || 'student123').digest('hex');
+      const passwordHash = crypto.createHash('sha256').update('student123').digest('hex');
 
       const studentUser = await tx.user.create({
         data: {
@@ -278,7 +385,7 @@ export async function admitStudent(tenantId: string, data: any) {
           tcDate: tcDate ? new Date(tcDate) : null,
 
           hostelName, roomNumber, bedNumber,
-          bankAccountNumber, ifscCode, feeGroup, feeIdConcession,
+          bankAccountNumber, ifscCode, feeGroup, feeGroupId, feeIdConcession,
           monthlyFeeDiscount: monthlyFeeDiscount ? parseFloat(monthlyFeeDiscount) : 0,
           transportDiscount: transportDiscount ? parseFloat(transportDiscount) : 0,
 
@@ -311,11 +418,20 @@ export async function admitStudent(tenantId: string, data: any) {
           OR: [
             { classId, transportRouteId: null },
             { classId: null, transportRouteId: null },
-            ...(profile.transportRouteId ? [{ transportRouteId: profile.transportRouteId }] : [])
+            ...(profile.transportRouteId ? [{ transportRouteId: profile.transportRouteId }] : []),
+            ...(profile.feeGroupId ? [{ feeGroupId: profile.feeGroupId }] : [])
           ]
         },
-        include: { installments: true }
+        include: { 
+          installments: true,
+          transportRoute: true
+        }
       });
+
+      // 7. Fetch concessions if group exists
+      const groupConcessions = profile.feeGroupId ? await tx.feeConcession.findMany({
+        where: { feeGroupId: profile.feeGroupId, tenantId }
+      }) : [];
 
       const mDiscount = parseFloat(monthlyFeeDiscount || '0');
       const tDiscount = parseFloat(transportDiscount || '0');
@@ -325,7 +441,32 @@ export async function admitStudent(tenantId: string, data: any) {
         const discountToApply = structure.transportRouteId ? tDiscount : (structure.classId ? mDiscount : 0);
 
         for (const installment of structure.installments) {
-          const finalAmount = Math.max(0, installment.amount - discountToApply);
+          let baseAmount = installment.amount;
+          
+          // Override with stop-specific fare if available
+          if (structure.transportRouteId && transportStop) {
+            try {
+              const stops = JSON.parse(structure.transportRoute?.stopsJson || '[]');
+              const matchedStop = stops.find((s: any) => s.name === transportStop);
+              if (matchedStop && matchedStop.fare) {
+                baseAmount = parseFloat(matchedStop.fare);
+              }
+            } catch (e) {
+              console.error('Stop fare parsing error:', e);
+            }
+          }
+
+          // Apply Group Concession if exists for this head
+          const concession = groupConcessions.find(c => c.feeHeadId === structure.feeHeadId);
+          if (concession) {
+            if (concession.discountType === 'PERCENTAGE') {
+              baseAmount = baseAmount * (1 - concession.discountValue / 100);
+            } else {
+              baseAmount = Math.max(0, baseAmount - concession.discountValue);
+            }
+          }
+
+          const finalAmount = Math.max(0, baseAmount - discountToApply);
           
           await tx.studentFee.create({
             data: {
@@ -350,8 +491,13 @@ export async function admitStudent(tenantId: string, data: any) {
 }
 
 
-export async function generateFeesFromStructure(tenantId: string, studentId: string) {
+export async function generateFeesFromStructure(tenantIdOrDomain: string, studentId: string) {
   try {
+    const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                   await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+    if (!tenant) return { error: 'Tenant not found' };
+    const tenantId = tenant.id;
+
     const enrollment = await prisma.studentEnrollment.findFirst({
       where: { studentId, tenantId },
       include: { class: true }
@@ -416,7 +562,12 @@ export async function generateFeesFromStructure(tenantId: string, studentId: str
   }
 }
 
-export async function collectPayment(tenantId: string, studentId: string, formData: FormData) {
+export async function collectPayment(tenantIdOrDomain: string, studentId: string, formData: FormData) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
+
   const studentFeeId = formData.get('studentFeeId') as string;
   const amountStr = formData.get('amount') as string;
   const method = formData.get('method') as string;
@@ -467,11 +618,17 @@ export async function collectPayment(tenantId: string, studentId: string, formDa
   }
 }
 
-export async function updateStudentProfile(tenantId: string, studentId: string, formData: FormData) {
+export async function updateStudentProfile(tenantIdOrDomain: string, studentId: string, formData: FormData) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
+
   const firstName = formData.get('firstName') as string;
   const lastName = formData.get('lastName') as string;
   const email = formData.get('email') as string;
   const transportRouteId = formData.get('transportRouteId') as string;
+  const transportStop = formData.get('transportStop') as string;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -491,9 +648,13 @@ export async function updateStudentProfile(tenantId: string, studentId: string, 
 
       // 3. Update Student Profile & Transport
       const routeId = transportRouteId || null;
+      const stopName = transportStop || null;
       await tx.studentProfile.update({
         where: { id: studentId },
-        data: { transportRouteId: routeId }
+        data: { 
+          transportRouteId: routeId,
+          transportStop: stopName
+        }
       });
 
       // 4. Handle Transport Fee Sync
@@ -528,10 +689,25 @@ export async function updateStudentProfile(tenantId: string, studentId: string, 
           if (session) {
             const feeStructure = await tx.feeStructure.findFirst({
               where: { transportRouteId: routeId, sessionId: session.id, tenantId },
-              include: { installments: true }
+              include: { 
+                installments: true,
+                transportRoute: true
+              }
             });
 
             if (feeStructure) {
+              // Get stop fare if available
+              let stopFare: number | null = null;
+              if (stopName && feeStructure.transportRoute?.stopsJson) {
+                try {
+                  const stops = JSON.parse(feeStructure.transportRoute.stopsJson);
+                  const matchedStop = stops.find((s: any) => s.name === stopName);
+                  if (matchedStop && matchedStop.fare) {
+                    stopFare = parseFloat(matchedStop.fare);
+                  }
+                } catch (e) {}
+              }
+
               for (const installment of feeStructure.installments) {
                 const feeExists = await tx.studentFee.findUnique({
                   where: { studentId_installmentId: { studentId, installmentId: installment.id } }
@@ -542,7 +718,7 @@ export async function updateStudentProfile(tenantId: string, studentId: string, 
                     data: {
                       studentId,
                       installmentId: installment.id,
-                      amountDue: installment.amount,
+                      amountDue: stopFare ?? installment.amount,
                       tenantId
                     }
                   });
@@ -565,7 +741,12 @@ export async function updateStudentProfile(tenantId: string, studentId: string, 
   }
 }
 
-export async function collectBulkPayment(tenantId: string, studentId: string, formData: FormData) {
+export async function collectBulkPayment(tenantIdOrDomain: string, studentId: string, formData: FormData) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
+
   const feeIdsJson = formData.get('feeIds') as string;
   const method = formData.get('method') as string;
   const remarks = formData.get('remarks') as string;
@@ -621,7 +802,12 @@ export async function collectBulkPayment(tenantId: string, studentId: string, fo
   }
 }
 
-export async function toggleStudentStatus(tenantId: string, studentId: string) {
+export async function toggleStudentStatus(tenantIdOrDomain: string, studentId: string) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
+
   try {
     const student = await prisma.studentProfile.findUnique({
       where: { id: studentId, tenantId },
@@ -643,7 +829,12 @@ export async function toggleStudentStatus(tenantId: string, studentId: string) {
   }
 }
 
-export async function getStudentsBySection(tenantId: string, classId: string, sectionId?: string) {
+export async function getStudentsBySection(tenantIdOrDomain: string, classId: string, sectionId?: string) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return [];
+  const tenantId = tenant.id;
+
   try {
     const enrollments = await prisma.studentEnrollment.findMany({
       where: {
@@ -680,7 +871,12 @@ export async function getStudentsBySection(tenantId: string, classId: string, se
   }
 }
 
-export async function updateRollNumbers(tenantId: string, rollData: { id: string, rollNumber: string }[]) {
+export async function updateRollNumbers(tenantIdOrDomain: string, rollData: { id: string, rollNumber: string }[]) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
+
   try {
     await prisma.$transaction(
       rollData.map(data =>
@@ -696,6 +892,112 @@ export async function updateRollNumbers(tenantId: string, rollData: { id: string
   } catch (error) {
     console.error(error);
     return { error: 'Failed to update roll numbers' };
+  }
+}
+
+export async function updateStudentTransport(tenantIdOrDomain: string, studentId: string, routeId: string | null, stopName: string | null = null) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Find existing student and their current route
+      const existing = await tx.studentProfile.findUnique({
+        where: { id: studentId, tenantId },
+        select: { transportRouteId: true }
+      });
+
+      if (!existing) throw new Error('Student not found');
+
+      // 2. Update Student Profile
+      await tx.studentProfile.update({
+        where: { id: studentId, tenantId },
+        data: { 
+          transportRouteId: routeId,
+          transportStop: stopName
+        }
+      });
+
+      // 3. Handle Transport Fee Sync
+      if (routeId !== existing.transportRouteId) {
+        // A. Remove UNPAID transport fees from the OLD route
+        if (existing.transportRouteId) {
+          const oldStructures = await tx.feeStructure.findMany({
+            where: { transportRouteId: existing.transportRouteId, tenantId },
+            include: { installments: true }
+          });
+
+          const oldInstallmentIds = oldStructures.flatMap(s => s.installments.map(i => i.id));
+
+          await tx.studentFee.deleteMany({
+            where: {
+              studentId,
+              installmentId: { in: oldInstallmentIds },
+              status: 'PENDING',
+              amountPaid: 0
+            }
+          });
+        }
+
+        // B. Add fees for the NEW route
+        if (routeId) {
+          const session = await tx.academicSession.findFirst({
+            where: { tenantId, isCurrent: true }
+          });
+
+          if (session) {
+            const feeStructure = await tx.feeStructure.findFirst({
+              where: { transportRouteId: routeId, sessionId: session.id, tenantId },
+              include: { 
+                installments: true,
+                transportRoute: true
+              }
+            });
+
+            if (feeStructure) {
+              // Get stop fare if available
+              let stopFare: number | null = null;
+              if (stopName && feeStructure.transportRoute?.stopsJson) {
+                try {
+                  const stops = JSON.parse(feeStructure.transportRoute.stopsJson);
+                  const matchedStop = stops.find((s: any) => s.name === stopName);
+                  if (matchedStop && matchedStop.fare) {
+                    stopFare = parseFloat(matchedStop.fare);
+                  }
+                } catch (e) {}
+              }
+
+              for (const installment of feeStructure.installments) {
+                const feeExists = await tx.studentFee.findUnique({
+                  where: { studentId_installmentId: { studentId, installmentId: installment.id } }
+                });
+
+                if (!feeExists) {
+                  await tx.studentFee.create({
+                    data: {
+                      studentId,
+                      installmentId: installment.id,
+                      amountDue: stopFare ?? installment.amount,
+                      tenantId
+                    }
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    revalidatePath(`/school/${tenantId}/students/${studentId}`);
+    revalidatePath(`/school/${tenantId}/students/${studentId}/fees`);
+    revalidatePath(`/school/${tenantId}/transport`);
+    return { success: true };
+  } catch (error: any) {
+    console.error('UPDATE_STUDENT_TRANSPORT_ERROR:', error);
+    return { error: error.message || 'Failed to update transport' };
   }
 }
 

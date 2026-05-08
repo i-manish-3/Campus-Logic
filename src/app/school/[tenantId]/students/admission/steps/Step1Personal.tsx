@@ -57,15 +57,6 @@ export default function Step1Personal({ formData, setFormData, allSessions, bloo
           <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Enter full name as per birth certificate" required />
         </div>
         <div className="field">
-          <label>Username <span className="auto-badge"><i className="ti ti-bolt" style={{ fontSize: '10px' }}></i>Auto</span></label>
-          <input type="text" name="username" value={formData.username} onChange={handleChange} placeholder="Auto-generated" className="auto" />
-          <span className="hint">Leave blank to auto-generate</span>
-        </div>
-        <div className="field">
-          <label>Password <span className="req">*</span></label>
-          <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Set login password" required />
-        </div>
-        <div className="field">
           <label>Date of Birth <span className="req">*</span></label>
           <input type="date" name="dob" value={formData.dob} onChange={handleChange} required />
         </div>
@@ -169,6 +160,11 @@ export default function Step1Personal({ formData, setFormData, allSessions, bloo
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
+                if (file.size > 2 * 1024 * 1024) {
+                  alert('Photo size is too large. Please select an image under 2MB.');
+                  e.target.value = '';
+                  return;
+                }
                 const reader = new FileReader();
                 reader.onload = (event) => setFormData({ ...formData, studentPhoto: event.target?.result });
                 reader.readAsDataURL(file);

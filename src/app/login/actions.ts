@@ -19,8 +19,16 @@ export async function loginAction(formData: FormData) {
   }
 
   try {
+    // SMART IDENTIFIER RESOLUTION
+    // If it's not a standard email, convert mobile/admission no. to the system email format
+    let finalEmail = email;
+    if (!email.includes('@')) {
+      // If it looks like a 10-digit phone or just a number (Admission ID)
+      finalEmail = `${email}@mda.com`;
+    }
+
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: finalEmail },
       include: { tenant: true },
     });
 

@@ -66,6 +66,7 @@
   cursor: pointer;
   border: none;
   transition: all 0.15s;
+  text-decoration: none;
 }
 
 .btn-outline {
@@ -101,6 +102,51 @@
   background: linear-gradient(135deg, #0d9488, #0891b2);
   color: #fff;
   padding: 9px 20px;
+}
+
+/* Action Icon Buttons for Lists */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  color: var(--gray-500);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  text-decoration: none;
+}
+
+.btn-icon:hover {
+  background: var(--gray-50);
+  border-color: var(--gray-300);
+  color: var(--gray-800);
+}
+
+.btn-icon-teal {
+  color: var(--teal);
+}
+
+.btn-icon-teal:hover {
+  background: var(--teal-bg);
+  border-color: var(--teal-light);
+  color: var(--teal-dark);
+}
+
+.btn-icon-danger {
+  border-color: #fee2e2;
+  color: #dc2626;
+}
+
+.btn-icon-danger:hover {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
 }
 
 .form-card {

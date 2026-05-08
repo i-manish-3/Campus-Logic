@@ -40,13 +40,6 @@ export default function Step3General({
             </select>
           </div>
           <div className="field">
-            <label>Admission Session <span className="req">*</span></label>
-            <select name="admissionSession" value={formData.admissionSession} onChange={handleChange} required>
-              <option value="">Select</option>
-              {allSessions.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-            </select>
-          </div>
-          <div className="field">
             <label>Medium of Instruction</label>
             <select name="medium" value={formData.medium} onChange={handleChange}>
               <option value="">Select</option>
@@ -117,14 +110,38 @@ export default function Step3General({
           <div className="subsection-title"><i className="ti ti-bus"></i> Transport Details</div>
           <div className="field" style={{ marginBottom: '10px' }}>
             <label>Route</label>
-            <select name="transportRouteId" value={formData.transportRouteId} onChange={handleChange}>
+            <select 
+              name="transportRouteId" 
+              value={formData.transportRouteId} 
+              onChange={(e) => {
+                setFormData({ ...formData, transportRouteId: e.target.value, transportStop: '' });
+              }}
+            >
               <option value="">Select Route</option>
               {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
           <div className="field">
-            <label>Stop</label>
-            <input type="text" name="transportStop" value={formData.transportStop} onChange={handleChange} placeholder="Bus stop name" />
+            <label>Stop & Monthly Fare</label>
+            {formData.transportRouteId ? (
+              <select name="transportStop" value={formData.transportStop} onChange={handleChange}>
+                <option value="">Select Stop</option>
+                {(() => {
+                  const selectedRoute = routes.find(r => r.id === formData.transportRouteId);
+                  if (!selectedRoute) return null;
+                  try {
+                    const stops = JSON.parse(selectedRoute.stopsJson || '[]');
+                    return stops.map((s: any, idx: number) => (
+                      <option key={idx} value={s.name}>{s.name} (₹{s.fare})</option>
+                    ));
+                  } catch (e) {
+                    return null;
+                  }
+                })()}
+              </select>
+            ) : (
+              <input type="text" disabled placeholder="Select route first" />
+            )}
           </div>
         </div>
         <div className="subsection">

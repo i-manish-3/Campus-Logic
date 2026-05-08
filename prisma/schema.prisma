@@ -35,9 +35,11 @@ model Tenant {
   parentProfiles   ParentProfile[]
   enrollments      StudentEnrollment[]
   feeHeads         FeeHead[]
+  feeGroups        FeeGroup[]
   feeStructures    FeeStructure[]
   studentFees      StudentFee[]
   feePayments      FeePayment[]
+  feeConcessions   FeeConcession[]
 
   // Phase 4 & 5 Relations
   subjects              Subject[]
@@ -50,6 +52,7 @@ model Tenant {
   certificateTemplates  CertificateTemplate[]
   notificationTemplates NotificationTemplate[]
   transportRoutes       TransportRoute[]
+  transportDrivers      TransportDriver[]
 }
 
 model User {
@@ -71,6 +74,7 @@ model User {
 
   studentProfile StudentProfile?
   parentProfile  ParentProfile?
+  transportDriver TransportDriver?
   taughtSubjects ClassSubject[]    @relation("TeacherSubjects")
   timetables     TimetablePeriod[] @relation("TeacherTimetable")
 }
@@ -124,6 +128,7 @@ model AcademicSession {
   enrollments   StudentEnrollment[]
   feeStructures FeeStructure[]
   exams         Exam[]
+  transportRoutes TransportRoute[]
 
   @@unique([name, tenantId])
 }
@@ -265,7 +270,9 @@ model StudentProfile {
   monthlyFeeDiscount Float?
   feeIdConcession   String?
   transportDiscount  Float?
-  feeGroup          String?
+  feeGroup          String? // Legacy field for text
+  feeGroupId        String?
+  feeGroupRel       FeeGroup? @relation(fields: [feeGroupId], references: [id])
 
   // Documents (stored as base64 or file paths)
   docBirthCertificate String?
@@ -286,6 +293,7 @@ model StudentProfile {
 
   transportRouteId String?
   transportRoute   TransportRoute? @relation(fields: [transportRouteId], references: [id])
+  transportStop    String?
 
   @@unique([admissionNumber, tenantId])
 }
@@ -329,7 +337,8 @@ model FeeHead {
   tenantId     String
   tenant       Tenant  @relation(fields: [tenantId], references: [id])
 
-  structures FeeStructure[]
+  feeStructures FeeStructure[]
+  concessions   FeeConcession[]
 
   @@unique([name, tenantId])
 }
@@ -338,6 +347,8 @@ model FeeStructure {
   id               String          @id @default(cuid())
   feeHeadId        String
   feeHead          FeeHead         @relation(fields: [feeHeadId], references: [id])
+  feeGroupId       String?
+  feeGroup         FeeGroup?       @relation(fields: [feeGroupId], references: [id])
   sessionId        String
   session          AcademicSession @relation(fields: [sessionId], references: [id])
   classId          String? // If null, applies to all classes
@@ -531,13 +542,41 @@ model NotificationTemplate {
   tenant   Tenant @relation(fields: [tenantId], references: [id])
 }
 
+model TransportDriver {
+  id            String    @id @default(cuid())
+  name          String
+  phone         String?
+  dob           DateTime?
+  licenseNumber String?
+  photoUrl      String?
+  isActive      Boolean   @default(true)
+
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  routes TransportRoute[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model TransportRoute {
   id            String  @id @default(cuid())
   name          String // e.g., "Route A - North"
   vehicleNumber String?
-  driverName    String?
-  driverPhone   String?
+  
+  driverId      String?
+  driver        TransportDriver? @relation(fields: [driverId], references: [id])
+
   feeAmount     Float   @default(0) // Monthly fee for this route
+  stopsJson     String? // Store stops and fares as JSON: [{name, fare}]
+  activeMonths  String? // Comma separated: "APR,MAY,JUN..."
+  
+  sessionId     String?
+  session       AcademicSession? @relation(fields: [sessionId], references: [id])
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
@@ -549,4 +588,37 @@ model TransportRoute {
   updatedAt DateTime @updatedAt
 
   @@unique([name, tenantId])
+}
+
+model FeeGroup {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  
+  structures   FeeStructure[]
+  concessions  FeeConcession[]
+  students     StudentProfile[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([name, tenantId])
+}
+
+model FeeConcession {
+  id          String   @id @default(cuid())
+  feeGroupId  String
+  feeGroup    FeeGroup @relation(fields: [feeGroupId], references: [id], onDelete: Cascade)
+  feeHeadId   String
+  feeHead     FeeHead  @relation(fields: [feeHeadId], references: [id])
+  
+  discountType  String  @default("PERCENTAGE") // PERCENTAGE, FIXED
+  discountValue Float
+  
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([feeGroupId, feeHeadId, tenantId])
 }

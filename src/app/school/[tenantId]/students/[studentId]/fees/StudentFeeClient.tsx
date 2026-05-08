@@ -255,7 +255,7 @@ export default function StudentFeeClient({
     setLoading(false);
     if (res.error) setError(res.error);
     else {
-      setLastPaymentId(res.receiptId);
+      setLastPaymentId(res.receiptId || null);
       setReceiptData({
         schoolAmount: selectedFeeIds.reduce((sum, id) => {
           const fee = fees.find(f => f.id === id);
@@ -272,7 +272,7 @@ export default function StudentFeeClient({
         schoolMonths: Array.from(selectedMonths),
         transportMonths: Array.from(selectedTransportMonths),
         total: totalAmount,
-        receiptId: res.receiptId,
+        receiptId: res.receiptId || 'N/A',
         date: new Date().toLocaleDateString(),
         method: method,
         remarks: remarks

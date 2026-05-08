@@ -4,7 +4,12 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
-export async function createFeeHead(tenantId: string, formData: FormData) {
+export async function createFeeHead(tenantIdOrDomain: string, formData: FormData) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
+
   const name = formData.get('name') as string;
   const description = formData.get('description') as string;
   const isRefundable = formData.get('isRefundable') === 'on';
@@ -29,7 +34,12 @@ export async function createFeeHead(tenantId: string, formData: FormData) {
   }
 }
 
-export async function updateFeeHead(tenantId: string, headId: string, formData: FormData) {
+export async function updateFeeHead(tenantIdOrDomain: string, headId: string, formData: FormData) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
+
   const name = formData.get('name') as string;
   const description = formData.get('description') as string;
   const isRefundable = formData.get('isRefundable') === 'on';
@@ -50,7 +60,12 @@ export async function updateFeeHead(tenantId: string, headId: string, formData: 
   }
 }
 
-export async function deleteFeeHead(tenantId: string, headId: string) {
+export async function deleteFeeHead(tenantIdOrDomain: string, headId: string) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
+
   try {
     await prisma.feeHead.delete({
       where: { id: headId, tenantId }
@@ -64,7 +79,12 @@ export async function deleteFeeHead(tenantId: string, headId: string) {
   }
 }
 
-export async function createFeeStructure(tenantId: string, formData: FormData) {
+export async function createFeeStructure(tenantIdOrDomain: string, formData: FormData) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
+
   const feeHeadId = formData.get('feeHeadId') as string;
   const sessionId = formData.get('sessionId') as string;
   const classId = formData.get('classId') as string;
@@ -105,14 +125,24 @@ export async function createFeeStructure(tenantId: string, formData: FormData) {
       const startDate = new Date(session.startDate);
 
       if (frequency === 'MONTHLY') {
+        const monthNames = ['april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december', 'january', 'february', 'march'];
         for (let i = 0; i < 12; i++) {
+          const monthKey = `month_${monthNames[i]}`;
+          const monthlyAmountStr = formData.get(monthKey) as string;
+          
+          // If monthly inputs exist, use them. Otherwise fallback to base amount.
+          const monthlyAmount = monthlyAmountStr ? parseFloat(monthlyAmountStr) : amount;
+          
+          // Skip if amount is 0 (e.g. Summer Vacation)
+          if (monthlyAmount <= 0 && monthlyAmountStr) continue;
+
           const dueDate = new Date(startDate);
           dueDate.setMonth(startDate.getMonth() + i);
           installments.push({
             feeStructureId: structure.id,
-            name: dueDate.toLocaleString('default', { month: 'long' }) + ' Installment',
+            name: dueDate.toLocaleString('default', { month: 'long' }) + ' Due',
             dueDate,
-            amount: amount, // Amount per month
+            amount: monthlyAmount,
           });
         }
       } else if (frequency === 'QUARTERLY') {
@@ -195,7 +225,12 @@ export async function createFeeStructure(tenantId: string, formData: FormData) {
   }
 }
 
-export async function deleteFeeStructure(tenantId: string, structureId: string) {
+export async function deleteFeeStructure(tenantIdOrDomain: string, structureId: string) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
+
   try {
     await prisma.$transaction(async (tx) => {
       // 1. Find all installments
@@ -229,7 +264,12 @@ export async function deleteFeeStructure(tenantId: string, structureId: string) 
   }
 }
 
-export async function updateFeeStructure(tenantId: string, structureId: string, formData: FormData) {
+export async function updateFeeStructure(tenantIdOrDomain: string, structureId: string, formData: FormData) {
+  const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
+                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+  if (!tenant) return { error: 'Tenant not found' };
+  const tenantId = tenant.id;
+
   const feeHeadId = formData.get('feeHeadId') as string;
   const classId = formData.get('classId') as string;
   const amountStr = formData.get('amount') as string;
