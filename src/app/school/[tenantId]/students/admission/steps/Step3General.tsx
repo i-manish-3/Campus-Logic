@@ -34,9 +34,23 @@ export default function Step3General({
         <div className="form-grid">
           <div className="field">
             <label>Class Admitted <span className="req">*</span></label>
-            <select name="classId" value={formData.classId} onChange={handleChange} required>
+            <select name="classId" value={formData.classId} onChange={(e) => {
+              setFormData({ ...formData, classId: e.target.value, sectionId: '' });
+            }} required>
               <option value="">Select Class</option>
               {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>Section <span className="req">*</span></label>
+            <select name="sectionId" value={formData.sectionId} onChange={handleChange} required>
+              <option value="">Select Section</option>
+              {(() => {
+                const selectedClass = classes.find(c => c.id === formData.classId);
+                return selectedClass?.sections?.map((s: any) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                )) || [];
+              })()}
             </select>
           </div>
           <div className="field">

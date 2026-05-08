@@ -3,9 +3,17 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import EditStudentModal from './EditStudentModal';
 import ToggleStatusButton from './ToggleStatusButton';
+import StudentFilters from './StudentFilters';
 
-export default async function StudentsPage({ params }: { params: Promise<{ tenantId: string }> }) {
+export default async function StudentsPage({ 
+  params,
+  searchParams 
+}: { 
+  params: Promise<{ tenantId: string }>,
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const { tenantId } = await params;
+  const { q, classId, sectionId, status, sessionId } = await searchParams;
 
   let tenant = await prisma.tenant.findUnique({ where: { domain: tenantId } }) ||
     await prisma.tenant.findUnique({ where: { id: tenantId } });
@@ -15,7 +23,28 @@ export default async function StudentsPage({ params }: { params: Promise<{ tenan
   const actualTenantId = tenant ? tenant.id : 'mock-tenant-id';
 
   const students = tenant ? await prisma.studentProfile.findMany({
-    where: { tenantId: actualTenantId },
+    where: { 
+      tenantId: actualTenantId,
+      ...(status === 'active' && { isActive: true }),
+      ...(status === 'inactive' && { isActive: false }),
+      ...((classId || sectionId || sessionId) && {
+        enrollments: {
+          some: {
+            ...(classId && { classId: classId as string }),
+            ...(sectionId && { sectionId: sectionId as string }),
+            ...(sessionId && { sessionId: sessionId as string }),
+          }
+        }
+      }),
+      ...(q && {
+        OR: [
+          { user: { firstName: { contains: q as string } } },
+          { user: { lastName: { contains: q as string } } },
+          { admissionNumber: { contains: q as string } },
+          { registrationNumber: { contains: q as string } },
+        ]
+      })
+    },
     include: {
       user: true,
       enrollments: { include: { class: true, section: true } },
@@ -24,7 +53,7 @@ export default async function StudentsPage({ params }: { params: Promise<{ tenan
     orderBy: { admissionNumber: 'asc' }
   }) : [];
 
-  const sessions = tenant ? await prisma.academicSession.findMany({ where: { tenantId: actualTenantId } }) : [];
+  const sessions = tenant ? await prisma.academicSession.findMany({ where: { tenantId: actualTenantId }, orderBy: { startDate: 'desc' } }) : [];
   const classes = tenant ? await prisma.class.findMany({ where: { tenantId: actualTenantId }, orderBy: { order: 'asc' } }) : [];
   const sections = tenant ? await prisma.section.findMany({ where: { tenantId: actualTenantId } }) : [];
   const routes = tenant ? await prisma.transportRoute.findMany({ where: { tenantId: actualTenantId } }) : [];
@@ -69,6 +98,12 @@ export default async function StudentsPage({ params }: { params: Promise<{ tenan
           Admit Student
         </Link>
       </header>
+
+      <StudentFilters 
+        classes={classes.map(c => ({ id: c.id, name: c.name }))}
+        sections={sections.map(s => ({ id: s.id, name: s.name, classId: s.classId }))}
+        sessions={sessions.map(s => ({ id: s.id, name: s.name }))}
+      />
 
       <div style={{
         backgroundColor: 'white',
@@ -146,7 +181,7 @@ export default async function StudentsPage({ params }: { params: Promise<{ tenan
                         {student.enrollments[0] ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <span style={{ fontWeight: '600', color: '#334155', fontSize: '0.8rem' }}>{student.enrollments[0].class.name}</span>
-                            <span style={{ color: '#0d9488', fontWeight: '800', fontSize: '0.8rem' }}>{student.enrollments[0].section?.name || 'A'}</span>
+                            <span style={{ color: '#0d9488', fontWeight: '800', fontSize: '0.8rem' }}>{student.enrollments[0].section?.name}</span>
                           </div>
                         ) : (
                           <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>N/A</span>

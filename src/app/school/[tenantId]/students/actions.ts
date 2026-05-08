@@ -403,7 +403,7 @@ export async function admitStudent(tenantIdOrDomain: string, data: any) {
           data: {
             studentId: profile.id,
             classId,
-            sectionId: null,
+            sectionId: data.sectionId || null,
             sessionId: session.id,
             tenantId
           }

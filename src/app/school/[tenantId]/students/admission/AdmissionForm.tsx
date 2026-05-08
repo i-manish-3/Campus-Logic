@@ -102,6 +102,7 @@ export default function AdmissionForm({
 
     // Step 3
     classId: '',
+    sectionId: '',
     medium: 'English',
     religion: 'Hindu',
     category: 'General',
