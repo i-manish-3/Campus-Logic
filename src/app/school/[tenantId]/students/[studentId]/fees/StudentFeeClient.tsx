@@ -136,14 +136,15 @@ export default function StudentFeeClient({
     fees.forEach(fee => {
       const date = new Date(fee.installment.dueDate);
       const mIdx = date.getMonth(); // 0-11
-      // Map 0-11 to our academic MONTHS array
       const academicOrder = [3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1, 2];
       const academicIdx = academicOrder.indexOf(mIdx);
-      const monthName = MONTHS[academicIdx];
-
-      if (groups[monthName]) {
-        if (fee.installment.feeStructure.transportRouteId) groups[monthName].transport.push(fee);
-        else groups[monthName].standard.push(fee);
+      
+      if (academicIdx !== -1) {
+        const monthName = MONTHS[academicIdx];
+        if (groups[monthName]) {
+          if (fee.installment.feeStructure.transportRouteId) groups[monthName].transport.push(fee);
+          else groups[monthName].standard.push(fee);
+        }
       }
     });
     return groups;

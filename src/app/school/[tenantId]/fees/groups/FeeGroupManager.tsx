@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createFeeGroup, deleteFeeGroup, addConcession, removeConcession } from './actions';
+import { createFeeGroup, deleteFeeGroup, addConcession, removeConcession, bindFeeHeadToGroup, removeFeeStructure } from './actions';
 
 export default function FeeGroupManager({ tenantId, groups, feeHeads }: { tenantId: string; groups: any[]; feeHeads: any[] }) {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -48,6 +48,24 @@ export default function FeeGroupManager({ tenantId, groups, feeHeads }: { tenant
   const handleRemoveConcession = async (id: string) => {
     const res = await removeConcession(tenantId, id);
     if (!res.success) alert(res.error);
+  };
+
+  const handleBindFeeHead = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!activeGroup) return;
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+    const res = await bindFeeHeadToGroup(tenantId, activeGroup.id, formData);
+    if (res.success) (e.target as HTMLFormElement).reset();
+    else alert(res.error);
+    setIsSubmitting(false);
+  };
+
+  const handleRemoveStructure = async (id: string) => {
+    if (confirm('Remove this fee head from the group?')) {
+      const res = await removeFeeStructure(tenantId, id);
+      if (!res.success) alert(res.error);
+    }
   };
 
   return (
@@ -99,65 +117,134 @@ export default function FeeGroupManager({ tenantId, groups, feeHeads }: { tenant
         </div>
       </div>
 
-      {/* Concessions Panel */}
-      <div className="card" style={{ padding: '1.5rem', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-        {activeGroup ? (
-          <>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>
-              Concession Rules for "{activeGroup.name}"
-            </h3>
-            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '1.5rem' }}>
-              Define automatic discounts for students in this group.
-            </p>
+      {/* Details Panel */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        {/* Fee Binding Section (NEW) */}
+        <div className="card" style={{ padding: '1.5rem', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+          {activeGroup ? (
+            <>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>
+                Group Fee Setup (Assigned Heads)
+              </h3>
+              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '1.5rem' }}>
+                Define which fees are automatically applied to students in this group.
+              </p>
 
-            <form onSubmit={handleAddConcession} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '10px', marginBottom: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px' }}>
-              <div className="field">
-                <select name="feeHeadId" required style={{ width: '100%' }}>
-                  <option value="">Select Fee Head</option>
-                  {feeHeads.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                </select>
-              </div>
-              <div className="field">
-                <select name="discountType" required style={{ width: '100%' }}>
-                  <option value="PERCENTAGE">% Off</option>
-                  <option value="FIXED">Flat ₹</option>
-                </select>
-              </div>
-              <div className="field">
-                <input type="number" name="discountValue" placeholder="Value" required style={{ width: '100%' }} />
-              </div>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting} style={{ height: '42px' }}>
-                <i className="ti ti-plus"></i>
-              </button>
-            </form>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {activeGroup.concessions.map((c: any) => (
-                <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: '#fff', border: '1px solid #f1f5f9', borderRadius: '10px' }}>
-                  <div style={{ fontWeight: '600', color: '#334155' }}>{c.feeHead.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ color: 'var(--orange-dark)', fontWeight: '700' }}>
-                      {c.discountType === 'PERCENTAGE' ? `${c.discountValue}% Off` : `₹ ${c.discountValue} Off`}
-                    </div>
-                    <button
-                      onClick={() => handleRemoveConcession(c.id)}
-                      style={{ border: 'none', background: '#fef2f2', color: '#ef4444', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
-                    >
-                      <i className="ti ti-x"></i>
-                    </button>
-                  </div>
+              <form onSubmit={handleBindFeeHead} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '10px', marginBottom: '1.5rem', padding: '1rem', background: '#f0f9ff', borderRadius: '12px' }}>
+                <div className="field">
+                  <select name="feeHeadId" required style={{ width: '100%' }}>
+                    <option value="">Select Fee Head</option>
+                    {feeHeads.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                  </select>
                 </div>
-              ))}
-              {selectedGroup.concessions.length === 0 && <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', border: '2px dashed #f1f5f9', borderRadius: '12px' }}>No concession rules defined. All fees will be charged at 100%.</div>}
+                <div className="field">
+                  <input type="number" name="amount" placeholder="Amount" required style={{ width: '100%' }} />
+                </div>
+                <div className="field">
+                  <select name="frequency" required style={{ width: '100%' }}>
+                    <option value="MONTHLY">Monthly</option>
+                    <option value="YEARLY">Yearly</option>
+                    <option value="ONE_TIME">One-time</option>
+                  </select>
+                </div>
+                <button type="submit" className="btn" style={{ height: '42px', backgroundColor: '#0369a1', color: '#fff' }} disabled={isSubmitting}>
+                  <i className="ti ti-plus"></i>
+                </button>
+              </form>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {activeGroup.structures?.map((s: any) => (
+                  <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: '#fff', border: '1px solid #e0f2fe', borderRadius: '10px' }}>
+                    <div>
+                      <div style={{ fontWeight: '700', color: '#0369a1' }}>{s.feeHead.name}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>{s.frequency} • {s.session?.name}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '15px' }}>₹ {s.amount.toLocaleString()}</div>
+                      <button 
+                        onClick={() => handleRemoveStructure(s.id)}
+                        style={{ border: 'none', background: '#f0f9ff', color: '#0369a1', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                      >
+                        <i className="ti ti-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {(activeGroup.structures?.length || 0) === 0 && (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', border: '2px dashed #e0f2fe', borderRadius: '12px' }}>
+                    No specific fees assigned. Only concessions apply.
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+              Select a group to manage its assigned fees.
             </div>
-          </>
-        ) : (
-          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', textAlign: 'center' }}>
-            <span className="material-symbols-rounded" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>touch_app</span>
-            <p>Select a group from the left to manage its<br />concessions and scholarship rules.</p>
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Concessions Panel */}
+        <div className="card" style={{ padding: '1.5rem', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+          {activeGroup ? (
+            <>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>
+                Concession Rules (Discounts)
+              </h3>
+              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '1.5rem' }}>
+                Apply additional scholarships or discounts on top of assigned fees.
+              </p>
+
+              <form onSubmit={handleAddConcession} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '10px', marginBottom: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px' }}>
+                <div className="field">
+                  <select name="feeHeadId" required style={{ width: '100%' }}>
+                    <option value="">Select Fee Head</option>
+                    {feeHeads.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <select name="discountType" required style={{ width: '100%' }}>
+                    <option value="PERCENTAGE">% Off</option>
+                    <option value="FIXED">Flat ₹</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <input type="number" name="discountValue" placeholder="Value" required style={{ width: '100%' }} />
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={isSubmitting} style={{ height: '42px' }}>
+                  <i className="ti ti-plus"></i>
+                </button>
+              </form>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {activeGroup.concessions.map((c: any) => (
+                  <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: '#fff', border: '1px solid #f1f5f9', borderRadius: '10px' }}>
+                    <div style={{ fontWeight: '600', color: '#334155' }}>{c.feeHead.name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ color: 'var(--orange-dark)', fontWeight: '700' }}>
+                        {c.discountType === 'PERCENTAGE' ? `${c.discountValue}% Off` : `₹ ${c.discountValue} Off`}
+                      </div>
+                      <button 
+                        onClick={() => handleRemoveConcession(c.id)}
+                        style={{ border: 'none', background: '#fef2f2', color: '#ef4444', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                      >
+                        <i className="ti ti-x"></i>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {selectedGroup.concessions.length === 0 && <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', border: '2px dashed #f1f5f9', borderRadius: '12px' }}>No concession rules defined.</div>}
+              </div>
+            </>
+          ) : (
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', textAlign: 'center' }}>
+              <span className="material-symbols-rounded" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>touch_app</span>
+              <p>Select a group from the left.</p>
+            </div>
+          )}
+        </div>
       </div>
+v>
 
       {/* New Group Modal */}
       {showAddModal && (
