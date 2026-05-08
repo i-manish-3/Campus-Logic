@@ -63,12 +63,12 @@ export default function FeeGroupManager({ tenantId, groups, feeHeads }: { tenant
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {groups.map(g => (
-            <div 
-              key={g.id} 
+            <div
+              key={g.id}
               onClick={() => setSelectedGroup(g)}
-              style={{ 
-                padding: '1rem', 
-                borderRadius: '12px', 
+              style={{
+                padding: '1rem',
+                borderRadius: '12px',
                 border: '1px solid',
                 borderColor: selectedGroup?.id === g.id ? 'var(--teal)' : '#f1f5f9',
                 background: selectedGroup?.id === g.id ? 'var(--teal-bg)' : '#f8fafc',
@@ -85,7 +85,7 @@ export default function FeeGroupManager({ tenantId, groups, feeHeads }: { tenant
                   <div style={{ fontSize: '11px', background: '#fff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontWeight: '600' }}>
                     {g._count.students} Students
                   </div>
-                  <button 
+                  <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.id); }}
                     style={{ color: '#ef4444', border: 'none', background: 'none', padding: '4px', cursor: 'pointer', marginTop: '8px' }}
                   >
@@ -139,7 +139,7 @@ export default function FeeGroupManager({ tenantId, groups, feeHeads }: { tenant
                     <div style={{ color: 'var(--orange-dark)', fontWeight: '700' }}>
                       {c.discountType === 'PERCENTAGE' ? `${c.discountValue}% Off` : `₹ ${c.discountValue} Off`}
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleRemoveConcession(c.id)}
                       style={{ border: 'none', background: '#fef2f2', color: '#ef4444', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
                     >
@@ -154,7 +154,7 @@ export default function FeeGroupManager({ tenantId, groups, feeHeads }: { tenant
         ) : (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', textAlign: 'center' }}>
             <span className="material-symbols-rounded" style={{ fontSize: '48px', marginBottom: '1rem', opacity: 0.5 }}>touch_app</span>
-            <p>Select a group from the left to manage its<br/>concessions and scholarship rules.</p>
+            <p>Select a group from the left to manage its<br />concessions and scholarship rules.</p>
           </div>
         )}
       </div>

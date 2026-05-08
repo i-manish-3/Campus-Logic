@@ -201,11 +201,11 @@ export async function admitStudent(tenantIdOrDomain: string, data: any) {
 
   // Resolve actual tenant ID
   const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
-                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
-  
+    await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+
   if (!tenant) return { error: 'Tenant not found' };
   const tenantId = tenant.id;
-  
+
   try {
     await ensurePermission(session.userId, 'manage_admission');
     const {
@@ -239,7 +239,7 @@ export async function admitStudent(tenantIdOrDomain: string, data: any) {
       let session = await tx.academicSession.findFirst({
         where: { tenantId, name: academicYear }
       });
-      
+
       if (!session) {
         session = await tx.academicSession.create({
           data: {
@@ -267,7 +267,7 @@ export async function admitStudent(tenantIdOrDomain: string, data: any) {
       if (!parentProfileId && (fatherContact || motherContact || fatherEmail || motherEmail)) {
         // A. Try to find by email first (exact match)
         const parentEmail = fatherEmail || motherEmail || (fatherContact ? `${fatherContact}@mda.com` : (motherContact ? `${motherContact}@mda.com` : null));
-        
+
         let parentUser = null;
         if (parentEmail) {
           parentUser = await tx.user.findFirst({
@@ -308,7 +308,7 @@ export async function admitStudent(tenantIdOrDomain: string, data: any) {
         if (!parentProfileId) {
           const finalParentEmail = parentEmail || `parent_${Math.random().toString(36).substr(2, 6)}@mda.com`;
           const passwordHash = crypto.createHash('sha256').update('parent123').digest('hex');
-          
+
           const newParentUser = await tx.user.create({
             data: {
               email: finalParentEmail,
@@ -368,7 +368,7 @@ export async function admitStudent(tenantIdOrDomain: string, data: any) {
           penNumber, samagraId, apaarId, udiseId,
           height, weight,
           photo: studentPhoto,
-          
+
           motherOccupation, motherEmail, motherQualification, motherAadhaar, motherIncome, motherContact,
           fatherOccupation, fatherEmail, fatherQualification, fatherAadhaar, fatherIncome, fatherContact,
 
@@ -422,7 +422,7 @@ export async function admitStudent(tenantIdOrDomain: string, data: any) {
             ...(profile.feeGroupId ? [{ feeGroupId: profile.feeGroupId }] : [])
           ]
         },
-        include: { 
+        include: {
           installments: true,
           transportRoute: true
         }
@@ -442,7 +442,7 @@ export async function admitStudent(tenantIdOrDomain: string, data: any) {
 
         for (const installment of structure.installments) {
           let baseAmount = installment.amount;
-          
+
           // Override with stop-specific fare if available
           if (structure.transportRouteId && transportStop) {
             try {
@@ -467,7 +467,7 @@ export async function admitStudent(tenantIdOrDomain: string, data: any) {
           }
 
           const finalAmount = Math.max(0, baseAmount - discountToApply);
-          
+
           await tx.studentFee.create({
             data: {
               studentId: profile.id,
@@ -494,7 +494,7 @@ export async function admitStudent(tenantIdOrDomain: string, data: any) {
 export async function generateFeesFromStructure(tenantIdOrDomain: string, studentId: string) {
   try {
     const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
-                   await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+      await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
     if (!tenant) return { error: 'Tenant not found' };
     const tenantId = tenant.id;
 
@@ -564,7 +564,7 @@ export async function generateFeesFromStructure(tenantIdOrDomain: string, studen
 
 export async function collectPayment(tenantIdOrDomain: string, studentId: string, formData: FormData) {
   const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
-                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+    await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
   if (!tenant) return { error: 'Tenant not found' };
   const tenantId = tenant.id;
 
@@ -620,7 +620,7 @@ export async function collectPayment(tenantIdOrDomain: string, studentId: string
 
 export async function updateStudentProfile(tenantIdOrDomain: string, studentId: string, formData: FormData) {
   const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
-                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+    await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
   if (!tenant) return { error: 'Tenant not found' };
   const tenantId = tenant.id;
 
@@ -651,7 +651,7 @@ export async function updateStudentProfile(tenantIdOrDomain: string, studentId: 
       const stopName = transportStop || null;
       await tx.studentProfile.update({
         where: { id: studentId },
-        data: { 
+        data: {
           transportRouteId: routeId,
           transportStop: stopName
         }
@@ -689,7 +689,7 @@ export async function updateStudentProfile(tenantIdOrDomain: string, studentId: 
           if (session) {
             const feeStructure = await tx.feeStructure.findFirst({
               where: { transportRouteId: routeId, sessionId: session.id, tenantId },
-              include: { 
+              include: {
                 installments: true,
                 transportRoute: true
               }
@@ -705,7 +705,7 @@ export async function updateStudentProfile(tenantIdOrDomain: string, studentId: 
                   if (matchedStop && matchedStop.fare) {
                     stopFare = parseFloat(matchedStop.fare);
                   }
-                } catch (e) {}
+                } catch (e) { }
               }
 
               for (const installment of feeStructure.installments) {
@@ -743,7 +743,7 @@ export async function updateStudentProfile(tenantIdOrDomain: string, studentId: 
 
 export async function collectBulkPayment(tenantIdOrDomain: string, studentId: string, formData: FormData) {
   const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
-                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+    await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
   if (!tenant) return { error: 'Tenant not found' };
   const tenantId = tenant.id;
 
@@ -804,7 +804,7 @@ export async function collectBulkPayment(tenantIdOrDomain: string, studentId: st
 
 export async function toggleStudentStatus(tenantIdOrDomain: string, studentId: string) {
   const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
-                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+    await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
   if (!tenant) return { error: 'Tenant not found' };
   const tenantId = tenant.id;
 
@@ -831,7 +831,7 @@ export async function toggleStudentStatus(tenantIdOrDomain: string, studentId: s
 
 export async function getStudentsBySection(tenantIdOrDomain: string, classId: string, sectionId?: string) {
   const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
-                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+    await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
   if (!tenant) return [];
   const tenantId = tenant.id;
 
@@ -873,7 +873,7 @@ export async function getStudentsBySection(tenantIdOrDomain: string, classId: st
 
 export async function updateRollNumbers(tenantIdOrDomain: string, rollData: { id: string, rollNumber: string }[]) {
   const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
-                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+    await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
   if (!tenant) return { error: 'Tenant not found' };
   const tenantId = tenant.id;
 
@@ -897,7 +897,7 @@ export async function updateRollNumbers(tenantIdOrDomain: string, rollData: { id
 
 export async function updateStudentTransport(tenantIdOrDomain: string, studentId: string, routeId: string | null, stopName: string | null = null) {
   const tenant = await prisma.tenant.findUnique({ where: { domain: tenantIdOrDomain } }) ||
-                 await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
+    await prisma.tenant.findUnique({ where: { id: tenantIdOrDomain } });
   if (!tenant) return { error: 'Tenant not found' };
   const tenantId = tenant.id;
 
@@ -914,7 +914,7 @@ export async function updateStudentTransport(tenantIdOrDomain: string, studentId
       // 2. Update Student Profile
       await tx.studentProfile.update({
         where: { id: studentId, tenantId },
-        data: { 
+        data: {
           transportRouteId: routeId,
           transportStop: stopName
         }
@@ -950,7 +950,7 @@ export async function updateStudentTransport(tenantIdOrDomain: string, studentId
           if (session) {
             const feeStructure = await tx.feeStructure.findFirst({
               where: { transportRouteId: routeId, sessionId: session.id, tenantId },
-              include: { 
+              include: {
                 installments: true,
                 transportRoute: true
               }
@@ -966,7 +966,7 @@ export async function updateStudentTransport(tenantIdOrDomain: string, studentId
                   if (matchedStop && matchedStop.fare) {
                     stopFare = parseFloat(matchedStop.fare);
                   }
-                } catch (e) {}
+                } catch (e) { }
               }
 
               for (const installment of feeStructure.installments) {

@@ -37,7 +37,8 @@ type PaymentRecord = {
   };
 };
 
-const MONTHS = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
+const MONTHS = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
+const DB_MONTHS = ['APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR'];
 
 export default function StudentFeeClient({
   tenantId,
@@ -95,9 +96,12 @@ export default function StudentFeeClient({
 
     MONTHS.forEach((m, idx) => {
       if (idx <= currentAcademicIdx) {
+        // Month index in standard JS (0=Jan)
+        const targetMonthIdx = academicOrder[idx];
+
         const sList = fees.filter(f => {
           const date = new Date(f.installment.dueDate);
-          return date.toLocaleString('default', { month: 'short' }) === m && 
+          return date.getMonth() === targetMonthIdx && 
                  !f.installment.feeStructure.transportRouteId && 
                  !f.installment.feeStructure.isAdmissionFee;
         });
@@ -107,7 +111,7 @@ export default function StudentFeeClient({
 
         const tList = fees.filter(f => {
           const date = new Date(f.installment.dueDate);
-          return date.toLocaleString('default', { month: 'short' }) === m && 
+          return date.getMonth() === targetMonthIdx && 
                  !!f.installment.feeStructure.transportRouteId;
         });
         const tDue = tList.reduce((sum, f) => sum + (f.amountDue - f.amountPaid), 0);
@@ -130,7 +134,13 @@ export default function StudentFeeClient({
     const groups: Record<string, { standard: FeeItem[], transport: FeeItem[] }> = {};
     MONTHS.forEach(m => groups[m] = { standard: [], transport: [] });
     fees.forEach(fee => {
-      const monthName = new Date(fee.installment.dueDate).toLocaleString('default', { month: 'short' });
+      const date = new Date(fee.installment.dueDate);
+      const mIdx = date.getMonth(); // 0-11
+      // Map 0-11 to our academic MONTHS array
+      const academicOrder = [3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1, 2];
+      const academicIdx = academicOrder.indexOf(mIdx);
+      const monthName = MONTHS[academicIdx];
+
       if (groups[monthName]) {
         if (fee.installment.feeStructure.transportRouteId) groups[monthName].transport.push(fee);
         else groups[monthName].standard.push(fee);

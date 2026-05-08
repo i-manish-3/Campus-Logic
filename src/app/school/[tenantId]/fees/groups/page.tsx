@@ -4,9 +4,9 @@ import FeeGroupManager from './FeeGroupManager';
 
 export default async function FeeGroupsPage({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = await params;
-  
-  let tenant = await prisma.tenant.findUnique({ where: { domain: tenantId } }) || 
-               await prisma.tenant.findUnique({ where: { id: tenantId } });
+
+  let tenant = await prisma.tenant.findUnique({ where: { domain: tenantId } }) ||
+    await prisma.tenant.findUnique({ where: { id: tenantId } });
 
   if (!tenant) notFound();
   const tid = tenant.id;

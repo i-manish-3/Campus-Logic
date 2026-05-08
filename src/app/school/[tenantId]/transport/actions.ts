@@ -271,24 +271,119 @@ export async function updateTransportRoute(tenantIdOrDomain: string, routeId: st
   if (!name || !sessionId) return { error: 'Route Name and Session are required' };
 
   try {
-    await prisma.transportRoute.update({
-      where: { id: routeId, tenantId },
-      data: {
-        name,
-        vehicleNumber,
-        driverId: driverId || null,
-        feeAmount: baseFee,
-        stopsJson,
-        activeMonths,
-        sessionId,
-      },
+    await prisma.$transaction(async (tx) => {
+      // 1. Update Route
+      const route = await tx.transportRoute.update({
+        where: { id: routeId, tenantId },
+        data: {
+          name,
+          vehicleNumber,
+          driverId: driverId || null,
+          feeAmount: baseFee,
+          stopsJson,
+          activeMonths,
+          sessionId,
+        },
+      });
+
+      // 2. Resolve Academic Session
+      const session = await tx.academicSession.findUnique({
+        where: { id: sessionId }
+      });
+
+      if (session) {
+        // 3. Find/Create "Transport Fee" Head
+        let transportHead = await tx.feeHead.findFirst({
+          where: { name: 'Transport Fee', tenantId }
+        });
+
+        if (!transportHead) {
+          transportHead = await tx.feeHead.create({
+            data: {
+              name: 'Transport Fee',
+              description: 'Fees for school bus/transportation services.',
+              tenantId
+            }
+          });
+        }
+
+        // 4. Ensure Fee Structure exists for this route and session
+        let structure = await tx.feeStructure.findFirst({
+          where: { transportRouteId: route.id, sessionId: session.id, tenantId }
+        });
+
+        if (!structure) {
+          structure = await tx.feeStructure.create({
+            data: {
+              feeHeadId: transportHead.id,
+              sessionId: session.id,
+              transportRouteId: route.id,
+              amount: baseFee,
+              frequency: 'MONTHLY',
+              tenantId,
+            }
+          });
+        } else {
+          // Update structure amount if it changed
+          await tx.feeStructure.update({
+            where: { id: structure.id },
+            data: { amount: baseFee }
+          });
+        }
+
+        // 5. Sync Installments only for active months
+        const monthCodes = (activeMonths || '').split(',');
+        const startDate = new Date(session.startDate);
+        
+        const DB_MONTH_MAP = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        
+        for (let i = 0; i < 12; i++) {
+          const dueDate = new Date(startDate);
+          dueDate.setMonth(startDate.getMonth() + i);
+          
+          const monthCode = DB_MONTH_MAP[dueDate.getMonth()];
+          const monthLong = dueDate.toLocaleString('default', { month: 'long' });
+          const installmentName = 'Transport - ' + monthLong;
+          
+          if (monthCodes.includes(monthCode)) {
+            // Check if this installment already exists for this structure
+            const existingInstallment = await tx.feeInstallment.findFirst({
+              where: { 
+                feeStructureId: structure.id,
+                name: installmentName
+              }
+            });
+
+            if (!existingInstallment) {
+              await tx.feeInstallment.create({
+                data: {
+                  feeStructureId: structure.id,
+                  name: installmentName,
+                  dueDate,
+                  amount: baseFee,
+                }
+              });
+            } else if (existingInstallment.amount !== baseFee) {
+              // Update amount if changed (only if not paid, but keep it simple for now)
+              await tx.feeInstallment.update({
+                where: { id: existingInstallment.id },
+                data: { amount: baseFee }
+              });
+            }
+          } else {
+            // If month is NOT active, we could delete PENDING installments, 
+            // but that's risky if students already have records. 
+            // For now, we only add missing ones.
+          }
+        }
+      }
     });
 
     revalidatePath(`/school/${tenantId}/transport`);
     return { success: true };
   } catch (error) {
     console.error(error);
-    return { error: 'Failed to update route' };
+    return { error: 'Failed to update route and sync fee structures' };
   }
 }
 
