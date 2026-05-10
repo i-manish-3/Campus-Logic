@@ -413,10 +413,11 @@ model FeePayment {
 // --- SUBJECT MANAGEMENT ---
 
 model Subject {
-  id       String  @id @default(cuid())
+  id        String  @id @default(cuid())
   name     String
   code     String?
-  type     String  @default("THEORY") // THEORY, PRACTICAL
+  sequence Int     @default(0)
+  type     String  @default("PRIMARY") // PRIMARY, OPTIONAL, EXTRA, SPECIAL
   tenantId String
   tenant   Tenant  @relation(fields: [tenantId], references: [id])
 

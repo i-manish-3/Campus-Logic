@@ -142,7 +142,7 @@ export async function saveMasterSetup(tenantId: string, payload: {
             }
 
             if (studentFeeEntries.length > 0) {
-              await tx.studentFee.createMany({ data: studentFeeEntries, skipDuplicates: true });
+              await tx.studentFee.createMany({ data: studentFeeEntries });
             }
           }
         }

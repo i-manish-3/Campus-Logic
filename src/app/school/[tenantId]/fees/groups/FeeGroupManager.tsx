@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createFeeGroup, deleteFeeGroup, addConcession, removeConcession, bindFeeHeadToGroup, removeFeeStructure } from './actions';
+import { createFeeGroup, deleteFeeGroup, addConcession, removeConcession } from './actions';
 
 export default function FeeGroupManager({ tenantId, groups, feeHeads }: { tenantId: string; groups: any[]; feeHeads: any[] }) {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -52,19 +52,13 @@ export default function FeeGroupManager({ tenantId, groups, feeHeads }: { tenant
 
   const handleBindFeeHead = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!activeGroup) return;
-    setIsSubmitting(true);
-    const formData = new FormData(e.currentTarget);
-    const res = await bindFeeHeadToGroup(tenantId, activeGroup.id, formData);
-    if (res.success) (e.target as HTMLFormElement).reset();
-    else alert(res.error);
+    alert('Feature coming soon');
     setIsSubmitting(false);
   };
 
   const handleRemoveStructure = async (id: string) => {
     if (confirm('Remove this fee head from the group?')) {
-      const res = await removeFeeStructure(tenantId, id);
-      if (!res.success) alert(res.error);
+      alert('Feature coming soon');
     }
   };
 
@@ -244,7 +238,6 @@ export default function FeeGroupManager({ tenantId, groups, feeHeads }: { tenant
           )}
         </div>
       </div>
-v>
 
       {/* New Group Modal */}
       {showAddModal && (
