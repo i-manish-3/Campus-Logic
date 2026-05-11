@@ -5,6 +5,14 @@ import { revalidatePath } from 'next/cache';
 
 export async function createSubject(tenantId: string, formData: FormData) {
   try {
+    // Resolve tenant ID from domain
+    const tenant = await prisma.tenant.findUnique({ where: { domain: tenantId } }) ||
+                   await prisma.tenant.findUnique({ where: { id: tenantId } });
+
+    if (!tenant) {
+      return { success: false, error: 'School not found' };
+    }
+
     const name = formData.get('name') as string;
     const code = formData.get('code') as string || null;
     const sequence = parseInt(formData.get('sequence') as string) || 0;
@@ -20,7 +28,7 @@ export async function createSubject(tenantId: string, formData: FormData) {
         code,
         sequence,
         type,
-        tenantId,
+        tenantId: tenant.id,
       },
     });
 

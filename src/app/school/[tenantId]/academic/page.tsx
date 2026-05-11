@@ -25,6 +25,11 @@ export default async function AcademicSetupPage({ params }: { params: Promise<{ 
     orderBy: { startDate: 'desc' }
   }) : [];
 
+  const subjects = tenant ? await prisma.subject.findMany({
+    where: { tenantId: actualTenantId },
+    orderBy: { name: 'asc' }
+  }) : [];
+
   return (
     <main style={{ flex: 1, padding: '2.5rem' }}>
       <header style={{ 
@@ -39,7 +44,7 @@ export default async function AcademicSetupPage({ params }: { params: Promise<{ 
           <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>Academic Configuration</h1>
           <p style={{ margin: '0.5rem 0 0 0', color: '#64748b', fontSize: '0.95rem' }}>Define your school's structure, classes, and academic cycles.</p>
         </div>
-        <AcademicModals tenantId={actualTenantId} classes={classes} />
+        <AcademicModals tenantId={actualTenantId} classes={classes} subjects={subjects} />
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2.5rem' }}>

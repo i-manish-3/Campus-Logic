@@ -7,16 +7,20 @@ type Subject = {
   id: string;
   name: string;
   code: string | null;
-  sequence: number;
+  sequence: number | null;
   type: string;
 };
 
 const SUBJECT_TYPES = ['PRIMARY', 'OPTIONAL', 'EXTRA', 'SPECIAL'];
 
-export default function SubjectModal({ tenantId, subject }: { tenantId: string; subject?: Subject }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+export default function SubjectModal({ tenantId, subject, onClose }: { tenantId: string; subject?: Subject; onClose?: () => void }) {
+  const [isOpen, setIsOpen] = useState(!!subject);
   const formRef = useRef<HTMLFormElement>(null);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    onClose?.();
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -30,7 +34,7 @@ export default function SubjectModal({ tenantId, subject }: { tenantId: string; 
     }
 
     if (res.success) {
-      setIsOpen(false);
+      handleClose();
       window.location.reload();
     } else {
       alert(res.error);
@@ -41,13 +45,11 @@ export default function SubjectModal({ tenantId, subject }: { tenantId: string; 
     if (!subject) return;
     if (!confirm('Are you sure you want to delete this subject?')) return;
 
-    setIsDeleting(true);
     const res = await deleteSubject(tenantId, subject.id);
     if (res.success) {
       window.location.reload();
     } else {
       alert(res.error);
-      setIsDeleting(false);
     }
   };
 
@@ -77,21 +79,26 @@ export default function SubjectModal({ tenantId, subject }: { tenantId: string; 
         {isOpen && (
           <div style={{
             position: 'fixed',
-            inset: 0,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             backgroundColor: 'rgba(0,0,0,0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000
-          }}>
+            zIndex: 9999,
+            padding: '1rem'
+          }} onClick={() => handleClose()}>
             <div style={{
               backgroundColor: 'white',
               borderRadius: '20px',
               padding: '2rem',
               width: '100%',
               maxWidth: '450px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-            }}>
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              margin: 'auto'
+            }} onClick={(e) => e.stopPropagation()}>
               <h2 style={{ margin: '0 0 1.5rem', fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>
                 Create New Subject
               </h2>
@@ -179,7 +186,7 @@ export default function SubjectModal({ tenantId, subject }: { tenantId: string; 
                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                   <button
                     type="button"
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => handleClose()}
                     style={{
                       padding: '0.75rem 1.5rem',
                       borderRadius: '10px',
@@ -218,10 +225,20 @@ export default function SubjectModal({ tenantId, subject }: { tenantId: string; 
   return (
     <>
       <button
-        onClick={() => setIsOpen(true)}
-        style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }}
+        onClick={(e) => { e.stopPropagation(); setIsOpen(true); }}
+        style={{
+          color: '#64748b',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '0.25rem',
+          borderRadius: '4px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
       >
-        <span className="material-symbols-rounded">more_vert</span>
+        <span className="material-symbols-rounded" style={{ fontSize: '1.25rem' }}>more_vert</span>
       </button>
 
       {isOpen && (
@@ -232,8 +249,8 @@ export default function SubjectModal({ tenantId, subject }: { tenantId: string; 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000
-        }}>
+          zIndex: 9999
+        }} onClick={() => handleClose()}>
           <div style={{
             backgroundColor: 'white',
             borderRadius: '20px',
@@ -241,7 +258,7 @@ export default function SubjectModal({ tenantId, subject }: { tenantId: string; 
             width: '100%',
             maxWidth: '450px',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }}>
+          }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ margin: '0 0 1.5rem', fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>
               Edit Subject
             </h2>
@@ -332,7 +349,6 @@ export default function SubjectModal({ tenantId, subject }: { tenantId: string; 
                 <button
                   type="button"
                   onClick={handleDelete}
-                  disabled={isDeleting}
                   style={{
                     padding: '0.75rem 1.5rem',
                     borderRadius: '10px',
@@ -340,15 +356,15 @@ export default function SubjectModal({ tenantId, subject }: { tenantId: string; 
                     backgroundColor: '#fef2f2',
                     color: '#dc2626',
                     fontWeight: '600',
-                    cursor: isDeleting ? 'not-allowed' : 'pointer'
+                    cursor: 'pointer'
                   }}
                 >
-                  {isDeleting ? 'Deleting...' : 'Delete'}
+                  Delete
                 </button>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <button
                     type="button"
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => handleClose()}
                     style={{
                       padding: '0.75rem 1.5rem',
                       borderRadius: '10px',

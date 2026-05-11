@@ -10,6 +10,18 @@ function hashPassword(password: string): string {
 async function main() {
   console.log(`🚀 Starting Full-Fledged Seeding ...`)
 
+  // --- 0. Create Demo Tenant ---
+  const demoTenant = await prisma.tenant.upsert({
+    where: { domain: 'demo-school' },
+    update: {},
+    create: {
+      name: 'Demo School',
+      domain: 'demo-school',
+      isActive: true,
+    },
+  });
+  console.log('✅ Seeded Demo Tenant: demo-school');
+
   // --- 1. Define All Granular Permissions ---
   const permissions = [
     { action: 'view_students', description: 'Can view student list and basic profiles' },
@@ -113,6 +125,28 @@ async function main() {
     },
   });
   console.log('✅ Seeded Super Admin: admin@mydigitalacademy.com / admin123');
+
+  // --- 4. Create Demo School Admin ---
+  const schoolAdminRole = await prisma.role.findFirst({
+    where: { name: 'School Admin', tenantId: null }
+  });
+
+  const schoolAdminHash = hashPassword('admin123');
+  await prisma.user.upsert({
+    where: { email: 'admin@demo-school.com' },
+    update: {},
+    create: {
+      email: 'admin@demo-school.com',
+      passwordHash: schoolAdminHash,
+      firstName: 'School',
+      lastName: 'Admin',
+      tenantId: demoTenant.id,
+      roleId: schoolAdminRole?.id,
+      isSuperAdmin: false,
+      isActive: true,
+    },
+  });
+  console.log('✅ Seeded School Admin: admin@demo-school.com / admin123');
 
   console.log(`🏁 Full Seeding Finished. System is ready.`);
 }

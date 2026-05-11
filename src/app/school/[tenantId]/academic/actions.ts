@@ -51,19 +51,31 @@ export async function createAcademicSession(tenantId: string, formData: FormData
 export async function createClass(tenantId: string, formData: FormData) {
   const name = formData.get('name') as string;
   const orderStr = formData.get('order') as string;
+  const subjectIds = formData.getAll('subjects') as string[];
 
   if (!name) return { error: 'Name is required' };
 
   const order = parseInt(orderStr, 10) || 0;
 
   try {
-    await prisma.class.create({
+    const newClass = await prisma.class.create({
       data: {
         name,
         order,
         tenantId,
       },
     });
+
+    // Create ClassSubject records for selected subjects
+    if (subjectIds && subjectIds.length > 0) {
+      await prisma.classSubject.createMany({
+        data: subjectIds.map(subjectId => ({
+          classId: newClass.id,
+          subjectId,
+          tenantId,
+        })),
+      });
+    }
 
     revalidatePath(`/school/${tenantId}/academic`);
     return { success: true };

@@ -4,13 +4,16 @@ import { useState } from 'react';
 import { createAcademicSession, createClass, createSection } from './actions';
 
 type ClassObj = { id: string; name: string };
+type SubjectObj = { id: string; name: string; code: string | null };
 
 export default function AcademicModals({
   tenantId,
   classes,
+  subjects,
 }: {
   tenantId: string;
   classes: ClassObj[];
+  subjects?: SubjectObj[];
 }) {
   const [activeModal, setActiveModal] = useState<'NONE' | 'SESSION' | 'CLASS' | 'SECTION'>('NONE');
   const [error, setError] = useState('');
@@ -108,10 +111,10 @@ export default function AcademicModals({
 
       {activeModal === 'CLASS' && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50 }}>
-          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '400px' }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '450px', maxHeight: '80vh', overflowY: 'auto' }}>
             <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Create Class</h2>
             {error && <div style={{ color: 'red', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</div>}
-            
+
             <form onSubmit={handleCreateClass} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Class Name (e.g. Class 1)</label>
@@ -121,6 +124,25 @@ export default function AcademicModals({
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Sort Order (Number)</label>
                 <input type="number" name="order" defaultValue="0" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
               </div>
+
+              {/* Subject Selection */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Select Subjects (Optional)</label>
+                <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '4px', padding: '0.5rem' }}>
+                  {subjects && subjects.length > 0 ? (
+                    subjects.map((subject) => (
+                      <label key={subject.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}>
+                        <input type="checkbox" name="subjects" value={subject.id} />
+                        <span style={{ fontSize: '0.9rem' }}>{subject.name}</span>
+                        {subject.code && <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>({subject.code})</span>}
+                      </label>
+                    ))
+                  ) : (
+                    <p style={{ fontSize: '0.85rem', color: '#94a3b8', textAlign: 'center', padding: '1rem' }}>No subjects available. Create subjects first.</p>
+                  )}
+                </div>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                 <button type="button" onClick={() => setActiveModal('NONE')} style={{ padding: '0.5rem 1rem', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
                 <button type="submit" disabled={loading} style={{ backgroundColor: '#4f46e5', color: 'white', padding: '0.5rem 1rem', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>{loading ? 'Saving...' : 'Save Class'}</button>
