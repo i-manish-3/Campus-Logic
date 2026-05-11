@@ -87,6 +87,9 @@ export default function Sidebar({
       icon: 'school',
       items: [
         {
+          name: 'Add Session', path: `/school/${tenantId}/academic/sessions/add`, icon: 'date_range', permission: 'manage_academic'
+        },
+        {
           type: 'section',
           name: 'Subject',
           icon: 'menu_book',
@@ -287,29 +290,29 @@ export default function Sidebar({
                                   <span>{item.name}</span>
                                   <span className="material-symbols-rounded" style={{ fontSize: '1rem', transform: isSectionOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>expand_more</span>
                                 </div>
-                              <div style={{ maxHeight: isSectionOpen ? '500px' : '0', overflow: 'hidden', transition: 'max-height 0.3s ease-out' }}>
-                                {item.items.map(child => {
-                                  const isActiveChild = checkActive(child.path);
-                                  return (
-                                    <Link key={child.path} href={child.path} onClick={() => setIsManualCollapsed(false)}
-                                      style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '0.5rem 1rem',
-                                        color: isActiveChild ? '#fff' : 'rgba(255,255,255,0.65)',
-                                        textDecoration: 'none',
-                                        fontSize: '0.85rem',
-                                        fontWeight: 500,
-                                        borderRadius: '8px',
-                                        backgroundColor: isActiveChild ? 'rgba(255,255,255,0.1)' : 'transparent',
-                                        transition: 'all 0.2s',
-                                      }}>
-                                      <span className="material-symbols-rounded" style={{ fontSize: '1rem', flexShrink: 0 }}>{child.icon}</span>
-                                      <span style={{ marginLeft: '0.75rem' }}>{child.name}</span>
-                                    </Link>
-                                  );
-                                })}
-                              </div>
+                                <div style={{ maxHeight: isSectionOpen ? '500px' : '0', overflow: 'hidden', transition: 'max-height 0.3s ease-out' }}>
+                                  {item.items.map(child => {
+                                    const isActiveChild = checkActive(child.path);
+                                    return (
+                                      <Link key={child.path} href={child.path} onClick={() => setIsManualCollapsed(false)}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          padding: '0.5rem 1rem',
+                                          color: isActiveChild ? '#fff' : 'rgba(255,255,255,0.65)',
+                                          textDecoration: 'none',
+                                          fontSize: '0.85rem',
+                                          fontWeight: 500,
+                                          borderRadius: '8px',
+                                          backgroundColor: isActiveChild ? 'rgba(255,255,255,0.1)' : 'transparent',
+                                          transition: 'all 0.2s',
+                                        }}>
+                                        <span className="material-symbols-rounded" style={{ fontSize: '1rem', flexShrink: 0 }}>{child.icon}</span>
+                                        <span style={{ marginLeft: '0.75rem' }}>{child.name}</span>
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             );
                           }

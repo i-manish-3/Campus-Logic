@@ -21,8 +21,6 @@ export async function createAcademicSession(tenantId: string, formData: FormData
   }
 
   try {
-    // If this session is marked as current, we might want to unset others. 
-    // For simplicity, we just insert.
     if (isCurrent) {
       await prisma.academicSession.updateMany({
         where: { tenantId, isCurrent: true },
@@ -41,10 +39,93 @@ export async function createAcademicSession(tenantId: string, formData: FormData
     });
 
     revalidatePath(`/school/${tenantId}/academic`);
+    revalidatePath(`/school/${tenantId}/academic/sessions/add`);
     return { success: true };
   } catch (error) {
     console.error(error);
     return { error: 'Failed to create Session. It may already exist.' };
+  }
+}
+
+export async function setCurrentSession(tenantId: string, sessionId: string) {
+  try {
+    // Unset all current sessions first
+    await prisma.academicSession.updateMany({
+      where: { tenantId, isCurrent: true },
+      data: { isCurrent: false },
+    });
+
+    // Set the selected session as current
+    await prisma.academicSession.update({
+      where: { id: sessionId },
+      data: { isCurrent: true },
+    });
+
+    revalidatePath(`/school/${tenantId}/academic`);
+    revalidatePath(`/school/${tenantId}/academic/sessions/add`);
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: 'Failed to set current session' };
+  }
+}
+
+export async function updateAcademicSession(tenantId: string, sessionId: string, formData: FormData) {
+  const name = formData.get('name') as string;
+  const startDateStr = formData.get('startDate') as string;
+  const endDateStr = formData.get('endDate') as string;
+  const isCurrent = formData.get('isCurrent') === 'on';
+
+  if (!name || !startDateStr || !endDateStr) {
+    return { error: 'All fields are required' };
+  }
+
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
+
+  if (startDate >= endDate) {
+    return { error: 'Start date must be before end date' };
+  }
+
+  try {
+    if (isCurrent) {
+      await prisma.academicSession.updateMany({
+        where: { tenantId, isCurrent: true },
+        data: { isCurrent: false },
+      });
+    }
+
+    await prisma.academicSession.update({
+      where: { id: sessionId },
+      data: {
+        name,
+        startDate,
+        endDate,
+        isCurrent,
+      },
+    });
+
+    revalidatePath(`/school/${tenantId}/academic`);
+    revalidatePath(`/school/${tenantId}/academic/sessions/add`);
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: 'Failed to update Session' };
+  }
+}
+
+export async function deleteAcademicSession(tenantId: string, sessionId: string) {
+  try {
+    await prisma.academicSession.delete({
+      where: { id: sessionId },
+    });
+
+    revalidatePath(`/school/${tenantId}/academic`);
+    revalidatePath(`/school/${tenantId}/academic/sessions/add`);
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: 'Failed to delete Session' };
   }
 }
 
