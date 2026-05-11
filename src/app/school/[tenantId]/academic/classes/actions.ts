@@ -64,3 +64,34 @@ export async function createSection(tenantId: string, formData: FormData) {
     return { error: 'Failed to create section' };
   }
 }
+
+export async function deleteSection(tenantId: string, sectionId: string) {
+  try {
+    await prisma.section.delete({
+      where: { id: sectionId },
+    });
+
+    revalidatePath(`/school/${tenantId}/academic/classes`);
+    revalidatePath(`/school/${tenantId}/academic`);
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: 'Failed to delete section' };
+  }
+}
+
+export async function updateClassTeacher(tenantId: string, classId: string, teacherId: string) {
+  try {
+    await prisma.class.update({
+      where: { id: classId },
+      data: { teacherId },
+    });
+
+    revalidatePath(`/school/${tenantId}/academic/classes`);
+    revalidatePath(`/school/${tenantId}/academic`);
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: 'Failed to update class teacher' };
+  }
+}

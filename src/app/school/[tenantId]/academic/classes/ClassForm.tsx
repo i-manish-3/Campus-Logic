@@ -3,41 +3,16 @@
 import { useState, useMemo } from 'react';
 import { createClass } from './actions';
 
-type ClassSubjectData = {
-  id: string;
-  classId: string;
-  subjectId: string;
-  tenantId: string;
-  teacherId: string | null;
-  subject?: {
-    id: string;
-    name: string;
-    code: string | null;
-    sequence: number;
-    type: string;
-  };
-};
-
 type SubjectData = {
   id: string;
   name: string;
   code: string | null;
   type: string;
   sequence: number | null;
-  classSubjects: { classId: string }[];
-};
-
-type ClassData = {
-  id: string;
-  name: string;
-  order: number;
-  sections: { id: string; name: string }[];
-  classSubjects: ClassSubjectData[];
 };
 
 interface ClassFormProps {
   subjects: SubjectData[];
-  classes: ClassData[];
   tenantId: string;
 }
 
@@ -50,7 +25,7 @@ const TYPE_COLORS: Record<string, { bg: string; color: string; label: string }> 
   SPECIAL: { bg: '#f3e8ff', color: '#7e22ce', label: 'Special' },
 };
 
-export default function ClassForm({ subjects, classes, tenantId }: ClassFormProps) {
+export default function ClassForm({ subjects, tenantId }: ClassFormProps) {
   const [loading, setLoading] = useState(false);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
 
