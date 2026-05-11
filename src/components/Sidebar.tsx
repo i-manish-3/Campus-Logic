@@ -108,6 +108,7 @@ export default function Sidebar({
           items: [
             { name: 'Add Class', path: `/school/${tenantId}/academic/classes`, icon: 'add_circle', permission: 'manage_academic' },
             { name: 'Class List', path: `/school/${tenantId}/academic/classes/list`, icon: 'list_alt', permission: 'manage_academic' },
+            { name: 'Sections', path: `/school/${tenantId}/academic/sections`, icon: 'group', permission: 'manage_academic' },
             { name: 'Promote Students', path: `/school/${tenantId}/academic/promote`, icon: 'trending_up', permission: 'manage_academic' },
           ]
         },
@@ -131,6 +132,33 @@ export default function Sidebar({
         { name: 'Notifications', path: `/school/${tenantId}/notifications`, icon: 'notifications', permission: 'manage_settings' },
         { name: 'Staff Roles', path: `/school/${tenantId}/settings/roles`, icon: 'security', permission: 'manage_settings' },
         { name: 'School Settings', path: `/school/${tenantId}/settings`, icon: 'settings', permission: 'manage_settings' },
+      ]
+    },
+    {
+      title: 'STAFF',
+      icon: 'badge',
+      items: [
+        {
+          type: 'section',
+          name: 'Teacher / Staff',
+          icon: 'school',
+          items: [
+            { name: 'Add Teacher', path: `/school/${tenantId}/staff/teacher-staff/add`, icon: 'person_add', permission: 'manage_staff' },
+            { name: 'Teaching Staff', path: `/school/${tenantId}/staff/teacher-staff/teaching`, icon: 'school' },
+            { name: 'Non-Teaching', path: `/school/${tenantId}/staff/teacher-staff/non-teaching`, icon: 'badge' },
+            { name: 'Assign Class', path: `/school/${tenantId}/staff/assign-class`, icon: 'class', permission: 'manage_staff' },
+          ]
+        },
+        {
+          type: 'section',
+          name: 'Attendance',
+          icon: 'check_circle',
+          items: [
+            { name: 'Mark Attendance', path: `/school/${tenantId}/staff/attendance`, icon: 'fact_check', permission: 'manage_staff' },
+            { name: 'Attendance Report', path: `/school/${tenantId}/staff/attendance/report`, icon: 'analytics', permission: 'manage_staff' },
+          ]
+        },
+        { name: 'Salary', path: `/school/${tenantId}/staff/salary`, icon: 'payments', permission: 'manage_staff' },
       ]
     }
   ];

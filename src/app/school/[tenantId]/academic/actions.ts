@@ -182,9 +182,25 @@ export async function createSection(tenantId: string, formData: FormData) {
     });
 
     revalidatePath(`/school/${tenantId}/academic`);
+    revalidatePath(`/school/${tenantId}/academic/sections`);
     return { success: true };
   } catch (error) {
     console.error(error);
     return { error: 'Failed to create Section. It may already exist in this Class.' };
+  }
+}
+
+export async function deleteSection(tenantId: string, sectionId: string) {
+  try {
+    await prisma.section.delete({
+      where: { id: sectionId },
+    });
+
+    revalidatePath(`/school/${tenantId}/academic`);
+    revalidatePath(`/school/${tenantId}/academic/sections`);
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: 'Failed to delete Section' };
   }
 }

@@ -32,7 +32,8 @@ export async function createSubject(tenantId: string, formData: FormData) {
       },
     });
 
-    revalidatePath(`/school/${tenantId}/subjects`);
+    revalidatePath(`/school/${tenantId}/academic/subjects`);
+    revalidatePath(`/school/${tenantId}/academic/subjects/add`);
     return { success: true };
   } catch (error: any) {
     console.error(error);
@@ -56,7 +57,8 @@ export async function updateSubject(tenantId: string, subjectId: string, formDat
       data: { name, code, sequence, type },
     });
 
-    revalidatePath(`/school/${tenantId}/subjects`);
+    revalidatePath(`/school/${tenantId}/academic/subjects`);
+    revalidatePath(`/school/${tenantId}/academic/subjects/add`);
     return { success: true };
   } catch (error: any) {
     console.error(error);
@@ -70,7 +72,8 @@ export async function deleteSubject(tenantId: string, subjectId: string) {
       where: { id: subjectId },
     });
 
-    revalidatePath(`/school/${tenantId}/subjects`);
+    revalidatePath(`/school/${tenantId}/academic/subjects`);
+    revalidatePath(`/school/${tenantId}/academic/subjects/add`);
     return { success: true };
   } catch (error: any) {
     console.error(error);

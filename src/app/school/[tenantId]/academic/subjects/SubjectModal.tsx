@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createSubject, updateSubject, deleteSubject } from './actions';
 
 type Subject = {
@@ -14,8 +14,12 @@ type Subject = {
 const SUBJECT_TYPES = ['PRIMARY', 'OPTIONAL', 'EXTRA', 'SPECIAL'];
 
 export default function SubjectModal({ tenantId, subject, onClose }: { tenantId: string; subject?: Subject; onClose?: () => void }) {
-  const [isOpen, setIsOpen] = useState(!!subject);
+  const [isOpen, setIsOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (subject) setIsOpen(true);
+  }, []);
 
   const handleClose = () => {
     setIsOpen(false);

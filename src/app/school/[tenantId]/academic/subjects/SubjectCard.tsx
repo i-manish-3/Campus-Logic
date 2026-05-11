@@ -25,20 +25,23 @@ interface SubjectCardProps {
   onEdit?: () => void;
 }
 
+const TYPE_ORDER = ['PRIMARY', 'OPTIONAL', 'EXTRA', 'SPECIAL'];
+
+const TYPE_COLORS: Record<string, { bg: string; color: string; label: string }> = {
+  PRIMARY: { bg: '#dbeafe', color: '#1d4ed8', label: 'Primary' },
+  OPTIONAL: { bg: '#fef3c7', color: '#b45309', label: 'Optional' },
+  EXTRA: { bg: '#dcfce7', color: '#15803d', label: 'Extra' },
+  SPECIAL: { bg: '#f3e8ff', color: '#7e22ce', label: 'Special' },
+};
+
 export default function SubjectCard({ subject, index, onEdit }: SubjectCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const sequence = subject.sequence || index + 1;
-  const isTheory = subject.type === 'THEORY';
-  const isPractical = subject.type === 'PRACTICAL';
-
-  const badgeBg = isTheory ? '#fef3c7' : isPractical ? '#dbeafe' : '#f3e8ff';
-  const badgeColor = isTheory ? '#d97706' : isPractical ? '#2563eb' : '#9333ea';
-  const iconGradient = isTheory
-    ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
-    : isPractical
-      ? 'linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%)'
-      : 'linear-gradient(135deg, #f3e8ff 0%, #d8b4fe 100%)';
+  const typeConfig = TYPE_COLORS[subject.type] || TYPE_COLORS.PRIMARY;
+  const badgeBg = typeConfig.bg;
+  const badgeColor = typeConfig.color;
+  const iconGradient = `linear-gradient(135deg, ${badgeBg} 0%, ${badgeColor}22 100%)`;
 
   return (
     <div
