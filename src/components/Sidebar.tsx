@@ -94,8 +94,8 @@ export default function Sidebar({
           name: 'Subject',
           icon: 'menu_book',
           items: [
-            { name: 'Add Subject', path: `/school/${tenantId}/subjects/add`, icon: 'add_circle', permission: 'manage_academic' },
-            { name: 'Subject List', path: `/school/${tenantId}/subjects`, icon: 'list_alt', permission: 'manage_academic' },
+            { name: 'Add Subject', path: `/school/${tenantId}/academic/subjects/add`, icon: 'add_circle', permission: 'manage_academic' },
+            { name: 'Subject List', path: `/school/${tenantId}/academic/subjects`, icon: 'list_alt', permission: 'manage_academic' },
             { name: 'Question Types', path: `/school/${tenantId}/subjects/qtypes`, icon: 'category', permission: 'manage_academic' },
             { name: 'Question Banks', path: `/school/${tenantId}/subjects/qbank`, icon: 'quiz', permission: 'manage_academic' },
             { name: 'Optional Subjects', path: `/school/${tenantId}/subjects/optional`, icon: 'check_circle', highlight: true, permission: 'manage_academic' },
